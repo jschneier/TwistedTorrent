@@ -38,7 +38,8 @@ class Tracker(object):
             'left': self.torrent.length,
             'event': event,
         }
-        tracker_url = self.torrent.announce_url + '?' + urllib.urlencode(announce_query)
+        base = self.torrent.announce_url
+        tracker_url = base + '?' + urllib.urlencode(announce_query)
         return tracker_url
 
     def request(self, **kwargs):
@@ -55,6 +56,15 @@ class Tracker(object):
         if 'failure reason' in tracker_dict:
             raise TrackerTalkError('''failure reason key in tracker response\
                                     %s:''' % tracker_dict['failure reason'])
+
+        peers_raw = tracker_dict['peers']
+        if isinstance(peers_raw, dict):
+            raise TrackerTalkError('peers as dictionary model not implemented')
+
+        temp = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+        peers = (map(ord, peer) for peer in temp)
+        ip_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
+        return ip_ports
 
 if __name__ == '__main__':
     from torrent import Torrent

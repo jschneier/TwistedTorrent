@@ -1,3 +1,4 @@
+import sys
 import time
 import urllib
 import hashlib
@@ -66,5 +67,5 @@ class Tracker(object):
 
 if __name__ == '__main__':
     track = Tracker()
-    torrent = Torrent('bar.torrent')
+    torrent = Torrent(sys.argv[1])
     track.request(torrent)

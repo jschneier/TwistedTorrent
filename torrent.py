@@ -3,7 +3,6 @@ import time
 import urllib
 import hashlib
 import bencode
-from peer import Peer
 
 class Torrent(object):
     '''
@@ -56,6 +55,7 @@ class ActiveTorrent(Torrent):
 
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
+        #TODO: connect the higher end to the lower end
         reactor.connectTCP(host, port, factory)
 
 class AnnounceError(Exception):

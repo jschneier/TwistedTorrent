@@ -7,7 +7,7 @@ from peer import Peer
 
 class Torrent(object):
     '''
-    Accepts a single .torrent file and parses it for metadata
+    Container for parsed metadata from a .torrent file.
     '''
  
     def __init__(self, filename):
@@ -36,6 +36,9 @@ class Torrent(object):
             self.names = [f['path'][0] for f in self.info['files']]
 
 class ActiveTorrent(Torrent):
+    '''
+    Represents a torrent that is in the process of being downloaded.
+    '''
     
     def __init__(self, filename):
         super(ActiveTorrent, self).__init__(filename)
@@ -47,10 +50,16 @@ class ActiveTorrent(Torrent):
     def left(self):
         return self.length - self.downloaded
 
-    def connect(self, (ip, port)):
-        self.peers.append(Peer(ip, port))
+    @property
+    def connections(self):
+        return len(self.peers)
 
-class AnnounceError(Exception): pass
+    def connect_to_peer(self, (host, port)):
+        from twisted.internet import reactor
+        reactor.connectTCP(host, port, factory)
+
+class AnnounceError(Exception):
+    pass
 
 class TorrentClient(object):
     '''
@@ -65,16 +74,16 @@ class TorrentClient(object):
 
     def add_torrent(self, torrent):
         self.torrents.append(torrent)
-        ip_ports = torrent.announce(torrent)
-        for ip_port in ip_ports:
-            torrent.connect(ip_port)
-
+        host_ports = torrent.announce(torrent)
+        for host_port in host_ports:
+            torrent.connect_to_peer(host_port)
 
     def announce(self, torrent):
         '''
-        create the url to send to the tracker, parse the response and then
-        generate the ip and ports of the specified peers
+        Create the url to send to the tracker, parse the response and then
+        generate the host and ports of the specified peers.
         '''
+
         announce_query = {
             'info_hash': torrent.info_hash,
             'peer_id': self.client_id,
@@ -84,6 +93,7 @@ class TorrentClient(object):
             'left': torrent.left,
             'event': 'started', #TODO: some way to determine what event
         }
+
         base = torrent.announce_url
         url = base + '?' + urllib.urlencode(announce_query)
 
@@ -103,9 +113,9 @@ class TorrentClient(object):
 
         peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
         peers = (map(ord, peer) for peer in peers_bytes)
-        ip_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
+        host_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
 
-        return ip_ports
+        return host_ports
 
 if __name__ == '__main__':
     client = TorrentClient()

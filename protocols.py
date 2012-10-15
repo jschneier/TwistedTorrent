@@ -21,3 +21,6 @@ class PeerProtocolFactory(ClientFactory):
     def clientConnectionLost(self, connector, reason):
         pass
         #need to pass this up to the controlling torrent
+
+    def clientConnectionFailed(self, reason):
+        pass

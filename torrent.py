@@ -23,7 +23,8 @@ class Torrent(object):
 
         #break string pieces up into a list of those pieces
         pieces_string = self.info['pieces']
-        self.pieces = [pieces_string[i:i+20] for i in xrange(0, len(pieces_string), 20)]
+        self.pieces = [pieces_string[i:i+20]
+                        for i in xrange(0, len(pieces_string), 20)]
 
         self.num_files = len(self.info['files']) if 'files' in self.info else 1
         if self.num_files == 1:
@@ -33,12 +34,18 @@ class Torrent(object):
             self.length = sum(f['length'] for f in self.info['files'])
             self.names = [f['path'][0] for f in self.info['files']]
 
-class AnnounceError(Exception):
-    def __init__(self, error):
-        self.error = error
+class ActiveTorrent(Torrent):
+    
+    def __init__(self, filename):
+        super(ActiveTorrent, self).__init__(filename)
+        self.uploaded = 0
+        self.downloaded = 0
 
-    def __str__(self):
-        return self.error
+    @property
+    def left(self):
+        return self.length - self.downloaded
+
+class AnnounceError(Exception): pass
 
 class TorrentClient(object):
     '''
@@ -47,27 +54,27 @@ class TorrentClient(object):
     '''
 
     def __init__(self, **kwargs):
-        self.client_id = str(time.time()) + '901asdf0293fasljz23raasd'
-        if len(self.client_id) > 20:
-            self.client_id = self.client_id[:20]
+        self.client_id = (str(time.time()) + '901asdf0293fasljz23raasd')[:20]
         self.port = 6881
+        self.torrents = []
 
-    def announce(self, torrent, etype='started'):
+    def announce(self, torrent):
         '''
-        create the url to send to the tracker and then decode the ip and
-        ports of the specified clients
+        create the url to send to the tracker, parse the response and then
+        generate the ip and ports of the specified peers
         '''
+        self.torrents.append(torrent)
 
         announce_query = {
             'info_hash': torrent.info_hash,
             'peer_id': self.client_id,
             'port': self.port,
-            'uploaded': 0,
-            'downloaded': 0,
+            'uploaded': torrent.uploaded,
+            'downloaded': torrent.downloaded,
             'left': torrent.length,
-            'event': etype,
+            'event': 'started',
         }
-        base = self.torrent.announce_url
+        base = torrent.announce_url
         url = base + '?' + urllib.urlencode(announce_query)
 
         response = urllib.urlopen(url).read()
@@ -84,14 +91,13 @@ class TorrentClient(object):
         if isinstance(peers_raw, dict):
             raise AnnounceError('peers as dictionary model not implemented')
 
-        temp = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-        peers = (map(ord, peer) for peer in temp)
+        peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+        peers = (map(ord, peer) for peer in peers_bytes)
         ip_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
 
         return ip_ports
 
 if __name__ == '__main__':
-    from torrent import Torrent
     client = TorrentClient()
-    torrent = Torrent(sys.argv[1])
+    torrent = ActiveTorrent(sys.argv[1])
     client.announce(torrent)

@@ -3,6 +3,7 @@ import time
 import urllib
 import hashlib
 import bencode
+from peer import Peer
 
 class Torrent(object):
     '''
@@ -40,10 +41,14 @@ class ActiveTorrent(Torrent):
         super(ActiveTorrent, self).__init__(filename)
         self.uploaded = 0
         self.downloaded = 0
+        self.peers = []
 
     @property
     def left(self):
         return self.length - self.downloaded
+
+    def connect(self, (ip, port)):
+        self.peers.append(Peer(ip, port))
 
 class AnnounceError(Exception): pass
 
@@ -58,21 +63,26 @@ class TorrentClient(object):
         self.port = 6881
         self.torrents = []
 
+    def add_torrent(self, torrent):
+        self.torrents.append(torrent)
+        ip_ports = torrent.announce(torrent)
+        for ip_port in ip_ports:
+            torrent.connect(ip_port)
+
+
     def announce(self, torrent):
         '''
         create the url to send to the tracker, parse the response and then
         generate the ip and ports of the specified peers
         '''
-        self.torrents.append(torrent)
-
         announce_query = {
             'info_hash': torrent.info_hash,
             'peer_id': self.client_id,
             'port': self.port,
             'uploaded': torrent.uploaded,
             'downloaded': torrent.downloaded,
-            'left': torrent.length,
-            'event': 'started',
+            'left': torrent.left,
+            'event': 'started', #TODO: some way to determine what event
         }
         base = torrent.announce_url
         url = base + '?' + urllib.urlencode(announce_query)

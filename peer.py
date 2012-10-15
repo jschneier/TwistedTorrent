@@ -1,12 +1,20 @@
+import socket
+import struct
+
 class Peer(object):
-    '''A single peer connection for a particular torrent'''
+    def __init__(self, client, torrent):
+        self.client = client
+        self.torrent = torrent
+        self.ip = '127.0.0.1'
+        self.port = 10000
+        self.socket = socket.socket()
+        try:
+            self.socket.connect((self.ip, self.port))
+        except socket.error:
+            pass
 
-    def __init__(self, client, torrent, (ip, port)):
-        self.am_choking = True
-        self.am_interested = False
-        self.peer_choking = True
-        self.peer_interested = False
-        self.ip, self.port = (ip, port)
+    def encode_prefix_id(self, len_prefix, msg_id):
+        return struct.pack('!IB', len_prefix + chr(msg_id))
 
-    def handshake(self):
-        pass 
+    def decode_prefix_id(self, message):
+        return struct.unpack_from('!IB', message)

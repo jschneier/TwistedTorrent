@@ -15,6 +15,11 @@ ID_TO_MSG = {None: 'keep-alive',
              }
 
 class PeerProtocol(Protocol):
+    '''
+    An instance of the BitTorrent protocol. This serves as a client. The
+    server is an instance of the ActiveTorrent class (of which this is
+    contained within.
+    '''
 
     def __init__(self, client, torrent):
         self.client = client
@@ -26,20 +31,36 @@ class PeerProtocol(Protocol):
     
     def connectionMade(self):
         self.handshake()
+        self.unchoke()
+        self.interested()
 
-    def decode_len(self, message):
-        return struct.unpack_from('!I', message)
+    def interested(self):
+        self.am_interested = 1
+        #TODO
 
-    def is_keep_alive(self, message):
-        return not bool(self.decode_len(message))
+    def unchoke(self):
+        self.am_choking = 0
+        #TODO
+
+    def decode_len_id(self, message):
+        len_prefix = struct.unpack_from('!I', message)
+        if not len_prefix: #keep alive message, ID is None
+            return (0, None)
+        else:
+            message_id = ord(message[4]) #single byte that must be the 5th byte
+            return (len_prefix, message_id)
 
     def dataReceived(self, data):
-        self.deocde_len(data)
+        self.deocde_len_id(data)
 
-    def handshake():
+    def handshake(self):
+        #TODO
         pass
 
 class PeerProtocolFactory(ClientFactory):
+    '''
+    Factory to generate instances of the Peer protocol. A Twisted concept.
+    '''
 
     protocol = PeerProtocol
 

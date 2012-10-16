@@ -24,11 +24,11 @@ class PeerProtocol(Protocol):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
-        self.am_choking = 1
-        self.am_interested = 0
-        self.peer_choking = 1
-        self.peer_interested = 0
-        self.handshaked = 0
+        self.am_choking = True
+        self.am_interested = False
+        self.peer_choking = True
+        self.peer_interested = False
+        self.handshaked = False
     
     def connectionMade(self):
         self.handshake()
@@ -36,11 +36,11 @@ class PeerProtocol(Protocol):
         self.interested()
 
     def interested(self):
-        self.am_interested = 1
+        self.am_interested = True
         #TODO
 
     def unchoke(self):
-        self.am_choking = 0
+        self.am_choking = False
         #TODO
 
     def decode_len_id(self, message):
@@ -58,7 +58,10 @@ class PeerProtocol(Protocol):
             return struct.pack('!IB', len_prefix, message_id)
 
     def dataReceived(self, data):
-        self.deocde_len_id(data)
+        if not self.handshaked:
+            self.decode_handshake(data)
+        else:
+            self.deocde_len_id(data)
 
     def handshake(self):
         peer_id = self.factory.client.client_id
@@ -69,6 +72,28 @@ class PeerProtocol(Protocol):
 
         #somehow send TODO
         handshake_msg = pstrlen + pstr + reserved + info_hash + peer_id
+
+    def decode_handshake(self, data):
+        '''
+        Verify that our peer is sending us a well formed handshake, if not
+        we then raise an errback that will close the connection. We can't check
+        against peer_id because we set the compact flag in our tracker request.
+        If the handshake is well formed we set the handshaked instance variable
+        to True so that we know to accept further messages from this peer.
+        '''
+
+        if ord(data[0]) != 68:
+            #WE NEED TO BREAK OUT TODO, some kind of errback
+            pass
+        elif data[28:48] != self.factory.torrent.info_hash:
+            #WE NEED TO BREAK OUT TODO, some kind of errback
+            pass
+        elif data[1:20] != 'BitTorrent protocol':
+            #WE NEED TO BREAK OUT TODO, some kind of errback
+            pass
+        self.handshaked = True
+            
+            
 
 class PeerProtocolFactory(ClientFactory):
     '''

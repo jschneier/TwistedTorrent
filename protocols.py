@@ -4,8 +4,8 @@ from twisted.internet.protocol import Protocol, ClientFactory
 class PeerProtocol(Protocol):
     '''
     An instance of the BitTorrent protocol. This serves as a client. The
-    server is an instance of the ActiveTorrent class (of which this is
-    contained within.
+    server is an instance of the ActiveTorrent class (which this is
+    contained within).
     '''
 
     def __init__(self):
@@ -42,16 +42,16 @@ class PeerProtocol(Protocol):
         #TODO - have a timer that resets to keep connections alive
         pass
 
-    def choke(self):
+    def choke(self, *args):
         self.peer_choking = True
 
-    def unchoke(self):
+    def unchoke(self, *args):
         self.peer_choking = False
 
-    def interested(self):
+    def interested(self, *args):
         self.peer_interested = True
 
-    def uninterested(self):
+    def uninterested(self, *args):
         self.peer_interested = False
 
     def decode_len_id(self, message):

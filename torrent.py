@@ -43,6 +43,8 @@ class ActiveTorrent(Torrent):
         super(ActiveTorrent, self).__init__(filename)
         self.uploaded = 0
         self.downloaded = 0
+        #self.index_pieces = {index: (piece, 0) for index, piece in
+        #                        enumerate(self.pieces)}
         self.peers = []
 
     @property

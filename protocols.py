@@ -28,6 +28,7 @@ class PeerProtocol(Protocol):
         self.am_interested = 0
         self.peer_choking = 1
         self.peer_interested = 0
+        self.handshaked = 0
     
     def connectionMade(self):
         self.handshake()
@@ -50,12 +51,24 @@ class PeerProtocol(Protocol):
             message_id = ord(message[4]) #single byte that must be the 5th byte
             return (len_prefix, message_id)
 
+    def encode_len_id(self, len_prefix, message_id):
+        if not len_prefix: #keep alive message
+            return '\x00\x00\x00\x00'
+        else:
+            return struct.pack('!IB', len_prefix, message_id)
+
     def dataReceived(self, data):
         self.deocde_len_id(data)
 
     def handshake(self):
-        #TODO
-        pass
+        peer_id = self.factory.client.client_id
+        info_hash = self.factory.torrent.info_hash
+        reserved = '0' * 8
+        pstr = 'BitTorrent protocol'
+        pstrlen = 68
+
+        #somehow send TODO
+        handshake_msg = pstrlen + pstr + reserved + info_hash + peer_id
 
 class PeerProtocolFactory(ClientFactory):
     '''
@@ -63,6 +76,10 @@ class PeerProtocolFactory(ClientFactory):
     '''
 
     protocol = PeerProtocol
+
+    def __init__(self, client, torrent):
+        self.client = client
+        self.torrent = torrent
 
     def clientConnectionLost(self, connector, reason):
         pass

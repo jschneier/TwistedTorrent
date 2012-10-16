@@ -1,19 +1,6 @@
 import struct
 from twisted.internet.protocol import Protocol, ClientFactory
 
-ID_TO_MSG = {None: 'keep-alive',
-             0: 'choke',
-             1: 'unchoke',
-             2: 'interested',
-             3: 'uninterested',
-             4: 'have',
-             5: 'bitfield',
-             6: 'request',
-             7: 'piece',
-             8: 'cancel',
-             9: 'port'
-             }
-
 class PeerProtocol(Protocol):
     '''
     An instance of the BitTorrent protocol. This serves as a client. The
@@ -21,27 +8,51 @@ class PeerProtocol(Protocol):
     contained within.
     '''
 
-    def __init__(self, client, torrent):
-        self.client = client
-        self.torrent = torrent
+    def __init__(self):
         self.am_choking = True
         self.am_interested = False
         self.peer_choking = True
         self.peer_interested = False
         self.handshaked = False
-    
+ 
     def connectionMade(self):
         self.handshake()
-        self.unchoke()
-        self.interested()
+        self.self_unchoke()
+        self.self_interested()
 
-    def interested(self):
+    def dataReceived(self, data):
+        if not self.handshaked:
+            self.decode_handshake(data)
+        else:
+            len_prefix, msg_id = self.deocde_len_id(data)
+            #TODO
+            #fix this up to be visible by the object, global functions?
+            ID_TO_MSG[msg_id](data)
+
+    def self_unchoke(self):
+        self.transport.write(struct.pack('!IB', 1, 1))
+        self.am_choking = False
+
+    def self_interested(self):
+        self.transport.write(struct.pack('!IB', 1, 2))
         self.am_interested = True
-        #TODO
+
+    def keep_alive(self):
+        '''Message that indicates we should persist the connection.'''
+        #TODO - have a timer that resets to keep connections alive
+        pass
+
+    def choke(self):
+        self.peer_choking = True
 
     def unchoke(self):
-        self.am_choking = False
-        #TODO
+        self.peer_choking = False
+
+    def interested(self):
+        self.peer_interested = True
+
+    def uninterested(self):
+        self.peer_interested = False
 
     def decode_len_id(self, message):
         len_prefix = struct.unpack_from('!I', message)
@@ -57,12 +68,6 @@ class PeerProtocol(Protocol):
         else:
             return struct.pack('!IB', len_prefix, message_id)
 
-    def dataReceived(self, data):
-        if not self.handshaked:
-            self.decode_handshake(data)
-        else:
-            self.deocde_len_id(data)
-
     def handshake(self):
         peer_id = self.factory.client.client_id
         info_hash = self.factory.torrent.info_hash
@@ -70,8 +75,8 @@ class PeerProtocol(Protocol):
         pstr = 'BitTorrent protocol'
         pstrlen = 68
 
-        #somehow send TODO
         handshake_msg = pstrlen + pstr + reserved + info_hash + peer_id
+        self.transport.write(handshake_msg)
 
     def decode_handshake(self, data):
         '''
@@ -91,9 +96,12 @@ class PeerProtocol(Protocol):
         elif data[1:20] != 'BitTorrent protocol':
             #WE NEED TO BREAK OUT TODO, some kind of errback
             pass
+
         self.handshaked = True
-            
-            
+
+    def _get_payload(self, message):
+        '''Convenience method to extract payload'''
+        return message[5:]
 
 class PeerProtocolFactory(ClientFactory):
     '''

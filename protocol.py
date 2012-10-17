@@ -1,6 +1,9 @@
 import struct
 from twisted.internet.protocol import Protocol, ClientFactory
 
+class HandshakeException(Exception):
+    pass
+
 ID_TO_MSG = {None: 'keep_alive',
              0: 'choke',
              1: 'unchoke',
@@ -65,11 +68,11 @@ class PeerProtocol(Protocol):
         pass 
 
     def piece(self, len_prefix, payload):
-        #block_len = len_prefix - 9
+        block_len = len_prefix - 9
         index = chr(payload[0])
         begin = chr(payload[1])
         block = payload[2:]
-        self.factory.add(dict((index, begin), block))
+        self.factory.add(block_len, index, begin, block)
 
     def cancel(self, len_prefix, payload):
         #TODO
@@ -109,27 +112,20 @@ class PeerProtocol(Protocol):
     def decode_handshake(self, data):
         '''
         Verify that our peer is sending us a well formed handshake, if not
-        we then raise an errback that will close the connection. We can't check
+        we then raise an exception that will close the connection. We can't check
         against peer_id because we set the compact flag in our tracker request.
         If the handshake is well formed we set the handshaked instance variable
         to True so that we know to accept further messages from this peer.
         '''
 
         try:
-            if ord(data[0]) != 68:
-                #WE NEED TO BREAK OUT TODO, some kind of errback
-                pass
-            elif data[28:48] != self.factory.torrent.info_hash:
-                #WE NEED TO BREAK OUT TODO, some kind of errback
-                pass
-            elif data[1:20] != 'BitTorrent protocol':
-                #WE NEED TO BREAK OUT TODO, some kind of errback
-                pass
+            if ord(data[0]) != 68 or data[1:20] != 'BitTorrent protocol'\
+                or data[28:48] != self.factory.torrent.info_hash:
+                self.transport.loseConnection()
         except IndexError:
-            #WE NEED TO BREAK OUT TODO, some kind of errback
-            pass
-
-        self.handshaked = True
+            self.transport.loseConnection()
+        else:
+            self.handshaked = True
 
     def self_keep_alive(self):
         self.transport.write(struct.pack('!I', 0))
@@ -160,6 +156,11 @@ class PeerProtocolFactory(ClientFactory):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
+        self.bufsize = 0
+        self.buffer = []
+
+    def add(self, block_len, index, begin, block):
+        self.bufsize += block_len
 
     def clientConnectionLost(self, connector, reason):
         pass

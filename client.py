@@ -1,9 +1,7 @@
-import time
+import os
 import urllib
 import bencode
-
-class AnnounceError(Exception):
-    pass
+from torrent import ActiveTorrent
 
 class TorrentClient(object):
     '''
@@ -11,14 +9,19 @@ class TorrentClient(object):
     and then connects to each peer as necessary.
     '''
 
-    def __init__(self, **kwargs):
-        self.client_id = (str(time.time()) + '901asdf0293fasljz23raasd')[:20]
+    def __init__(self, *torrents):
+        self.client_id = (str(os.getpid()) + '901asdf0293fasljz23raasd')[:20]
         self.port = 6881
-        self.torrents = []
+        if not torrents:
+            raise ValueError('Must supply at least 1 torrent file')
+        self.torrents = [ActiveTorrent(torrent) for torrent in torrents]
+        for torrent in torrents:
+            self.begin_download(torrent)
+        from twisted.internet import reactor
+        reactor.run()
 
-    def add_torrent(self, torrent):
-        self.torrents.append(torrent)
-        host_ports = torrent.announce(torrent, type='started')
+    def begin_download(self, torrent):
+        host_ports = self.announce(torrent, type='started')
         for host_port in host_ports:
             torrent.connect_to_peer(host_port)
 
@@ -69,3 +72,6 @@ class TorrentClient(object):
         url = base + '?' + urllib.urlencode(announce_query)
 
         return url
+
+class AnnounceError(Exception):
+    pass

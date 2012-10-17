@@ -1,6 +1,7 @@
 import sys
 import hashlib
 import bencode
+from protocol import PeerProtocolFactory
 
 class Torrent(object):
     '''
@@ -42,9 +43,7 @@ class ActiveTorrent(Torrent):
         super(ActiveTorrent, self).__init__(filename)
         self.uploaded = 0
         self.downloaded = 0
-        #self.index_pieces = {index: (piece, 0) for index, piece in
-        #                        enumerate(self.pieces)}
-        self.peers = []
+        self.factory = PeerProtocolFactory(self)
 
     @property
     def left(self):
@@ -56,8 +55,7 @@ class ActiveTorrent(Torrent):
 
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
-        #TODO: connect the higher end to the lower end
-        reactor.connectTCP(host, port, factory)
+        reactor.connectTCP(host, port, self.factory)
 
 if __name__ == '__main__':
     from client import TorrentClient

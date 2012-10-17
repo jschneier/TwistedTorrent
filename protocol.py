@@ -31,11 +31,13 @@ class PeerProtocol(Protocol):
         self.timer = None
  
     def connectionMade(self):
+        print 'We got here'
         self.handshake()
         self.self_unchoke()
         self.self_interested()
 
     def dataReceived(self, data):
+        print repr(data)
         if not self.handshaked:
             self.decode_handshake(data)
         else:
@@ -61,8 +63,8 @@ class PeerProtocol(Protocol):
         pass
 
     def bitfield(self, len_prefix, payload):
-        #TODO, are payloads in network order and set in client what peers have
-        bit_len = len_prefix - 1
+        '''Optional so we ignore it.'''
+        pass
 
     def request(self, len_prefix, payload):
         pass 
@@ -153,8 +155,7 @@ class PeerProtocolFactory(ClientFactory):
 
     protocol = PeerProtocol
 
-    def __init__(self, client, torrent):
-        self.client = client
+    def __init__(self, torrent):
         self.torrent = torrent
         self.bufsize = 0
         self.buffer = []

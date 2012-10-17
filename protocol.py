@@ -1,6 +1,19 @@
 import struct
 from twisted.internet.protocol import Protocol, ClientFactory
 
+ID_TO_MSG = {None: 'keep_alive',
+             0: 'choke',
+             1: 'unchoke',
+             2: 'interested',
+             3: 'uninterested',
+             4: 'have',
+             5: 'bitfield',
+             6: 'request',
+             7: 'piece',
+             8: 'cancel',
+             9: 'port'
+             }
+
 class PeerProtocol(Protocol):
     '''
     An instance of the BitTorrent protocol. This serves as a client.
@@ -23,50 +36,59 @@ class PeerProtocol(Protocol):
         if not self.handshaked:
             self.decode_handshake(data)
         else:
-            len_prefix, msg_id = self.deocde_len_id(data)
-            #TODO
-    
-    def self_keep_alive(self):
-        self.transport.write(struct.pack('!I', 0))
+            len_prefix, msg_id, payload = self.deocde_message(data)
+            getattr(self, ID_TO_MSG[msg_id])(len_prefix, payload)
 
-    def self_choke(self):
-        self.transport.write(struct.pack('!IB', 1, 0))
-        self.am_choking = True
-
-    def self_unchoke(self):
-        self.transport.write(struct.pack('!IB', 1, 1))
-        self.am_choking = False
-
-    def self_interested(self):
-        self.transport.write(struct.pack('!IB', 1, 2))
-        self.am_interested = True
-
-    def self_uninterested(self):
-        self.transport.write(struct.pack('!IB', 1, 3))
-        self.am_interested = False
-
-    def keep_alive(self):
+    def keep_alive(self, *args):
         pass
 
-    def choke(self):
+    def choke(self, *args):
         self.peer_choking = True
 
-    def unchoke(self):
+    def unchoke(self, *args):
         self.peer_choking = False
 
-    def interested(self):
+    def interested(self, *args):
         self.peer_interested = True
 
-    def uninterested(self):
+    def uninterested(self, *args):
         self.peer_interested = False
 
-    def decode_len_id(self, message):
+    def have(self, len_prefix, payload):
+        pass
+
+    def bitfield(self, len_prefix, payload):
+        #TODO, are payloads in network order and set in client what peers have
+        bit_len = len_prefix - 1
+
+    def request(self, len_prefix, payload):
+        pass 
+
+    def piece(self, len_prefix, payload):
+        #block_len = len_prefix - 9
+        index = chr(payload[0])
+        begin = chr(payload[1])
+        block = payload[2:]
+        self.factory.add(dict((index, begin), block))
+
+    def cancel(self, len_prefix, payload):
+        #TODO
+        pass
+
+    def port(self, len_prefix, payload):
+        '''Not supported'''
+        pass
+
+    def decode_message(self, message):
         len_prefix = struct.unpack_from('!I', message)
         if not len_prefix: #keep alive message, ID is None
-            return (0, None)
+            return 0, None, None
         else:
             message_id = ord(message[4]) #single byte that must be the 5th byte
-            return (len_prefix, message_id)
+            if message_id < 4:
+                return len_prefix, message_id, None
+            else:
+                return len_prefix, message_id, message[5:]
 
     def encode_len_id(self, len_prefix, message_id):
         if not len_prefix: #keep alive message
@@ -109,9 +131,24 @@ class PeerProtocol(Protocol):
 
         self.handshaked = True
 
-    def _payload(self, message):
-        '''Convenience method to extract payload'''
-        return message[5:]
+    def self_keep_alive(self):
+        self.transport.write(struct.pack('!I', 0))
+
+    def self_choke(self):
+        self.transport.write(struct.pack('!IB', 1, 0))
+        self.am_choking = True
+
+    def self_unchoke(self):
+        self.transport.write(struct.pack('!IB', 1, 1))
+        self.am_choking = False
+
+    def self_interested(self):
+        self.transport.write(struct.pack('!IB', 1, 2))
+        self.am_interested = True
+
+    def self_uninterested(self):
+        self.transport.write(struct.pack('!IB', 1, 3))
+        self.am_interested = False
 
 class PeerProtocolFactory(ClientFactory):
     '''

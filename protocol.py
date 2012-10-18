@@ -155,7 +155,8 @@ class PeerProtocolFactory(ClientFactory):
 
     protocol = PeerProtocol
 
-    def __init__(self, torrent):
+    def __init__(self, client, torrent):
+        self.client = client
         self.torrent = torrent
         self.bufsize = 0
         self.buffer = []

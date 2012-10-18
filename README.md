@@ -7,9 +7,10 @@
 #### TODO
     * Add hash verification of the pieces -- IMPORTANT
     * Add disconnection
+    * Pass things up through the factory
+    * Grok choking
     * Implement asynchronous downloading with Twisted
     * Loop through adding each of the files directory from the dict
-    * Maintain file mapping
     * Lots of bookeeping to do for protocol implementation
     * Implement the scrape method of a tracker
     * Refactor the protocol

@@ -39,11 +39,13 @@ class ActiveTorrent(Torrent):
     Represents a torrent that is in the process of being downloaded.
     '''
 
-    def __init__(self, filename):
+    def __init__(self, client, filename):
         super(ActiveTorrent, self).__init__(filename)
+        self.client = client
         self.uploaded = 0
         self.downloaded = 0
-        self.factory = PeerProtocolFactory(self)
+        self.factory = PeerProtocolFactory(client, self)
+        self.peers = set()
 
     @property
     def left(self):
@@ -56,6 +58,7 @@ class ActiveTorrent(Torrent):
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
         reactor.connectTCP(host, port, self.factory)
+        self.peers.add((host, port))
 
 if __name__ == '__main__':
     from client import TorrentClient

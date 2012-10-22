@@ -75,5 +75,18 @@ class TorrentClient(object):
 
         return url
 
+    def delete_torrent(self, torrent):
+        '''Remove a torrent that has finished downloading.'''
+
+        torrent_id = id(torrent)
+        for index, torrent in enumerate(self.torrents):
+            if id(torrent) == torrent_id:
+                deletion_index = index
+                break
+        else:
+            raise Exception('No torrents in the list with same id')
+
+        del self.torrents[deletion_index]
+
 class AnnounceError(Exception):
     pass

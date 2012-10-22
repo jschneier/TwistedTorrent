@@ -29,21 +29,20 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.timer = None
-        self.message_buffer = ''
  
     def connectionMade(self):
         if DEBUG: print 'Successfully connected, sending handshake'
         self.handshake()
-        #self.self_unchoke()
-        #self.self_interested()
 
     def dataReceived(self, data):
-        self.message_buffer += data
+        if DEBUG: print 'Data Received'
         if not self.handshaked:
-            if DEBUG: print 'Received handshake, decoding'
+            if DEBUG: print 'Received handshake, decoding', repr(data)
             self.decode_handshake(data)
+            if DEBUG: print 'Decoded handshake, seding interested and unchoke'
         else:
-            len_prefix, msg_id, payload = self.deocde_message(data)
+            if DEBUG: print 'Other data received:', repr(data)
+            len_prefix, msg_id, payload = self.decode_message(data)
             getattr(self, ID_TO_MSG[msg_id])(len_prefix, payload)
 
     def keep_alive(self, *args):
@@ -125,8 +124,9 @@ class PeerProtocol(Protocol):
         if DEBUG: print 'Handshake being decoded'
 
         try:
-            if ord(data[0]) != 68 or data[1:20] != 'BitTorrent protocol'\
+            if ord(data[0]) != 19 or data[1:20] != 'BitTorrent protocol'\
                 or data[28:48] != self.factory.torrent.info_hash:
+                if DEBUG: print 'Losing Connection'
                 self.transport.loseConnection()
         except IndexError:
             self.transport.loseConnection()
@@ -153,6 +153,9 @@ class PeerProtocol(Protocol):
     def self_uninterested(self):
         self.transport.write(struct.pack('!IB', 1, 3))
         self.am_interested = False
+
+    def self_request(self, index, begin, length=2**14):
+        self.transport.write(struct.pack('!IBIII', 13, 6, index, begin, length))
 
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol."""

@@ -54,6 +54,8 @@ class TorrentClient(object):
         return host_ports
 
     def _build_url(self, torrent, type):
+        '''Create the url that is sent to the tracker. The type that is
+        specified must be one of started, stopped or finished.'''
 
         if type is None:
             raise AnnounceError('Must specify type of request, eg. started')

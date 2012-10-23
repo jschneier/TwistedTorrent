@@ -24,6 +24,9 @@ class ReadOnceBuffer(bytearray):
     def __len__(self):
         return len(self.bytes)
 
+    def __eq__(self, other):
+        return self.bytes == other
+
     def __getitem__(self, slicer):
         ret = self.bytes.__getitem__(slicer)
         self.bytes.__delitem__(slicer)

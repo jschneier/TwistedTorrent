@@ -34,7 +34,7 @@ class PeerProtocol(Protocol):
         if not self.handshaked:
             if self.bufsize >= handshake_len:
                 if DEBUG: print 'Received handshake, decoding'
-                self.decode_handshake(data)
+                self.decode_handshake(self.data_buffer[:handshake_len])
                 if DEBUG: print 'Decoded handshake, sending interested'
                 self.send('interested')
         else:

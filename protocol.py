@@ -121,7 +121,7 @@ class PeerProtocol(Protocol):
         if DEBUG: print 'Handshake being decoded'
 
         try:
-            if ord(len(pstr)) != 19 or data[1:20] != pstr\
+            if ord(data[0]) != len(pstr) or data[1:20] != pstr\
                 or data[28:48] != self.factory.torrent.info_hash:
 
                 if DEBUG: print 'Bad handhsake, losing connection'

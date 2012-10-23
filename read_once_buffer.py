@@ -11,6 +11,10 @@ class ReadOnceBuffer(bytearray):
     def __add__(self, data):
         self.bytes += data
 
+    def __iadd__(self, data):
+        self.bytes += data
+        return self
+
     def __str__(self):
         return str(self.bytes)
 

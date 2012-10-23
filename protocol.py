@@ -1,6 +1,7 @@
 import struct
-from constants import pstr
 from message import Message
+from constants import pstr, handshake_len
+from read_once_buffer import ReadOnceBuffer
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
@@ -18,7 +19,7 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.timer = None
-        self.data_buffer = bytearray()
+        self.data_buffer = ReadOnceBuffer()
  
     def connectionMade(self):
         if DEBUG: print 'Successfully connected, sending handshake'
@@ -31,10 +32,11 @@ class PeerProtocol(Protocol):
         if DEBUG: print 'Total Data', repr(self.data_buffer)
 
         if not self.handshaked:
-            if DEBUG: print 'Received handshake, decoding'
-            self.decode_handshake(data)
-            if DEBUG: print 'Decoded handshake, sending interested'
-            self.send('interested')
+            if self.bufsize >= handshake_len:
+                if DEBUG: print 'Received handshake, decoding'
+                self.decode_handshake(data)
+                if DEBUG: print 'Decoded handshake, sending interested'
+                self.send('interested')
         else:
             if DEBUG: print 'Other data received:', repr(data)
             len_prefix, msg_id, payload = self.decode_message(data)
@@ -120,14 +122,11 @@ class PeerProtocol(Protocol):
 
         if DEBUG: print 'Handshake being decoded'
 
-        try:
-            if ord(data[0]) != len(pstr) or data[1:20] != pstr\
-                or data[28:48] != self.factory.torrent.info_hash:
+        if ord(data[0]) != len(pstr) or data[1:20] != pstr\
+            or data[28:48] != self.factory.torrent.info_hash:
 
-                if DEBUG: print 'Bad handhsake, losing connection'
-                self.transport.loseConnection()
-        except IndexError:
-            if DEBUG: print 'Incomplete data: trying again later'
+            if DEBUG: print 'Bad handhsake, losing connection'
+            self.transport.loseConnection()
         else:
             self.handshaked = True
             if DEBUG: print 'Handshake successfully decoded'

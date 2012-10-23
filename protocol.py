@@ -1,23 +1,11 @@
 import struct
+from message import Message
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
 
 class HandshakeException(Exception):
     pass
-
-ID_TO_MSG = {None: 'keep_alive',
-             0: 'choke',
-             1: 'unchoke',
-             2: 'interested',
-             3: 'uninterested',
-             4: 'have',
-             5: 'bitfield',
-             6: 'request',
-             7: 'piece',
-             8: 'cancel',
-             9: 'port'
-             }
 
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. This serves as a client."""
@@ -29,12 +17,15 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.timer = None
+        self.data_buffer = bytearray()
  
     def connectionMade(self):
         if DEBUG: print 'Successfully connected, sending handshake'
-        self.handshake()
+        self.send('handshake', info_hash= self.factory.torrent.info_hash,
+                                peer_id = self.factory.client.client_id)
 
     def dataReceived(self, data):
+        self.data_buffer += data
         if DEBUG: print 'Data Received'
         if not self.handshaked:
             if DEBUG: print 'Received handshake, decoding', repr(data)
@@ -43,7 +34,6 @@ class PeerProtocol(Protocol):
         else:
             if DEBUG: print 'Other data received:', repr(data)
             len_prefix, msg_id, payload = self.decode_message(data)
-            getattr(self, ID_TO_MSG[msg_id])(len_prefix, payload)
 
     def keep_alive(self, *args):
         pass
@@ -107,7 +97,7 @@ class PeerProtocol(Protocol):
         info_hash = self.factory.torrent.info_hash
         reserved = chr(0) * 8
         pstr = 'BitTorrent protocol'
-        pstrlen = chr(19)
+        pstrlen = chr(len(pstr))
 
         handshake_msg = pstrlen + pstr + reserved + info_hash + peer_id
         self.transport.write(handshake_msg)
@@ -115,8 +105,8 @@ class PeerProtocol(Protocol):
     def decode_handshake(self, data):
         """
         Verify that our peer is sending us a well formed handshake, if not
-        we then raise an exception that will close the connection. We can't check
-        against peer_id because we set the compact flag in our tracker request.
+        we then raise an exception that will close the connection. We can't
+        check against peer_id because we set the compact flag in our tracker request.
         If the handshake is well formed we set the handshaked instance variable
         to True so that we know to accept further messages from this peer.
         """
@@ -126,7 +116,7 @@ class PeerProtocol(Protocol):
         try:
             if ord(data[0]) != 19 or data[1:20] != 'BitTorrent protocol'\
                 or data[28:48] != self.factory.torrent.info_hash:
-                if DEBUG: print 'Losing Connection'
+                if DEBUG: print 'Bad handhsake, losing connection'
                 self.transport.loseConnection()
         except IndexError:
             self.transport.loseConnection()
@@ -134,9 +124,6 @@ class PeerProtocol(Protocol):
             self.handshaked = True
 
         if DEBUG: print 'Handshake successfully decoded'
-
-    def self_keep_alive(self):
-        self.transport.write(struct.pack('!I', 0))
 
     def self_choke(self):
         self.transport.write(struct.pack('!IB', 1, 0))
@@ -153,9 +140,6 @@ class PeerProtocol(Protocol):
     def self_uninterested(self):
         self.transport.write(struct.pack('!IB', 1, 3))
         self.am_interested = False
-
-    def self_request(self, index, begin, length=2**14):
-        self.transport.write(struct.pack('!IBIII', 13, 6, index, begin, length))
 
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol."""

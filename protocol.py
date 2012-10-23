@@ -35,6 +35,21 @@ class PeerProtocol(Protocol):
             if DEBUG: print 'Other data received:', repr(data)
             len_prefix, msg_id, payload = self.decode_message(data)
 
+    def send(self, mtype, **kwargs):
+        """Send a message to our peers, also take care of state that determines
+        who is choking who and who is interested"""
+
+        self.transport.write(Message(mtype, **kwargs))
+
+        if mtype == 'interested':
+            self.am_interested = True
+        elif mtype == 'not_interested':
+            self.am_interested = False
+        elif mtype == 'choke':
+            self.peer_choking = True
+        elif mtype == 'unchoke':
+            self.peer_choking = False
+
     def keep_alive(self, *args):
         pass
 
@@ -86,22 +101,6 @@ class PeerProtocol(Protocol):
             else:
                 return len_prefix, message_id, message[5:]
 
-    def encode_len_id(self, len_prefix, message_id):
-        if not len_prefix: #keep alive message
-            return '\x00\x00\x00\x00'
-        else:
-            return struct.pack('!IB', len_prefix, message_id)
-
-    def handshake(self):
-        peer_id = self.factory.client.client_id
-        info_hash = self.factory.torrent.info_hash
-        reserved = chr(0) * 8
-        pstr = 'BitTorrent protocol'
-        pstrlen = chr(len(pstr))
-
-        handshake_msg = pstrlen + pstr + reserved + info_hash + peer_id
-        self.transport.write(handshake_msg)
-
     def decode_handshake(self, data):
         """
         Verify that our peer is sending us a well formed handshake, if not
@@ -124,22 +123,6 @@ class PeerProtocol(Protocol):
             self.handshaked = True
 
         if DEBUG: print 'Handshake successfully decoded'
-
-    def self_choke(self):
-        self.transport.write(struct.pack('!IB', 1, 0))
-        self.am_choking = True
-
-    def self_unchoke(self):
-        self.transport.write(struct.pack('!IB', 1, 1))
-        self.am_choking = False
-
-    def self_interested(self):
-        self.transport.write(struct.pack('!IB', 1, 2))
-        self.am_interested = True
-
-    def self_uninterested(self):
-        self.transport.write(struct.pack('!IB', 1, 3))
-        self.am_interested = False
 
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol."""

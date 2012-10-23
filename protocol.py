@@ -1,4 +1,5 @@
 import struct
+from constants import pstr
 from message import Message
 from twisted.internet.protocol import Protocol, ClientFactory
 
@@ -26,18 +27,21 @@ class PeerProtocol(Protocol):
 
     def dataReceived(self, data):
         self.data_buffer += data
-        if DEBUG: print 'Data Received'
+        if DEBUG: print 'Data Received', repr(data)
+        if DEBUG: print 'Total Data', repr(self.data_buffer)
+
         if not self.handshaked:
-            if DEBUG: print 'Received handshake, decoding', repr(data)
+            if DEBUG: print 'Received handshake, decoding'
             self.decode_handshake(data)
-            if DEBUG: print 'Decoded handshake, seding interested and unchoke'
+            if DEBUG: print 'Decoded handshake, sending interested'
+            self.send('interested')
         else:
             if DEBUG: print 'Other data received:', repr(data)
             len_prefix, msg_id, payload = self.decode_message(data)
 
     def send(self, mtype, **kwargs):
         """Send a message to our peers, also take care of state that determines
-        who is choking who and who is interested"""
+        who is choking who and who is interested."""
 
         self.transport.write(Message(mtype, **kwargs))
 
@@ -50,7 +54,12 @@ class PeerProtocol(Protocol):
         elif mtype == 'unchoke':
             self.peer_choking = False
 
+    @property
+    def bufsize(self):
+        return len(self.data_buffer)
+
     def keep_alive(self, *args):
+        #TODO: reset timer
         pass
 
     def choke(self, *args):
@@ -104,28 +113,30 @@ class PeerProtocol(Protocol):
     def decode_handshake(self, data):
         """
         Verify that our peer is sending us a well formed handshake, if not
-        we then raise an exception that will close the connection. We can't
-        check against peer_id because we set the compact flag in our tracker request.
-        If the handshake is well formed we set the handshaked instance variable
+        we then raise an exception that will close the connection.  If the
+        handshake is well formed we set the handshaked instance variable
         to True so that we know to accept further messages from this peer.
         """
 
         if DEBUG: print 'Handshake being decoded'
 
         try:
-            if ord(data[0]) != 19 or data[1:20] != 'BitTorrent protocol'\
+            if ord(len(pstr)) != 19 or data[1:20] != pstr\
                 or data[28:48] != self.factory.torrent.info_hash:
+
                 if DEBUG: print 'Bad handhsake, losing connection'
                 self.transport.loseConnection()
         except IndexError:
-            self.transport.loseConnection()
+            if DEBUG: print 'Incomplete data: trying again later'
         else:
             self.handshaked = True
-
-        if DEBUG: print 'Handshake successfully decoded'
+            if DEBUG: print 'Handshake successfully decoded'
 
 class PeerProtocolFactory(ClientFactory):
-    """Factory to generate instances of the Peer protocol."""
+    """
+    Factory to generate instances of the Peer protocol. Maintains state data
+    across protocol instances.
+    """
 
     protocol = PeerProtocol
 

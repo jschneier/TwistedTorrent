@@ -66,7 +66,7 @@ class PeerProtocol(Protocol):
     def has_msg(self):
         """Check if there is a full message to pull off, first 4 bytes
         determine the necessary length and are not included in calc."""
-        return self.bufsize-4 >= struct.unpack('!I', (self.buf.peek(0, 4)))
+        return self.bufsize-4 >= struct.unpack('!I', (self.buf.peek(0, 4)))[0]
 
     @property
     def bufsize(self):
@@ -98,10 +98,9 @@ class PeerProtocol(Protocol):
     def request(self, prefix, payload):
         pass 
 
-    def piece(self, prefix, payload):
-        index = chr(payload[0])
-        begin = chr(payload[1])
-        block = payload[2:]
+    def piece(self, payload):
+        index, begin = struct.unpack_from('!II', payload)
+        block = payload[9:]
         self.factory.add(index, begin, block)
 
     def cancel(self, prefix, payload):
@@ -113,15 +112,15 @@ class PeerProtocol(Protocol):
         pass
 
     def parse_message(self):
-        prefix = struct.unpack('!I', self.buf[:4])
+        prefix, = struct.unpack('!I', self.buf[:4])
         if not prefix: #keep_alive message, ID is None
             return 0, None, None
         else:
-            message_id = ord(self.buf[4])
+            message_id = ord(self.buf[0])
             if message_id < 4:
                 return prefix, message_id, None
             else:
-                return prefix, message_id, self.buf[5:]
+                return prefix, message_id, self.buf[0: prefix-1] #-1 for id
 
     def parse_handshake(self, data):
         """
@@ -133,7 +132,7 @@ class PeerProtocol(Protocol):
 
         if DEBUG: print 'Handshake being parsed'
 
-        if ord(data[0]) != len(pstr) or data[1:20] != pstr\
+        if data[0] != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
 
             if DEBUG: print 'Bad handhsake, losing connection'

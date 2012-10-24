@@ -9,7 +9,7 @@ class ReadOnceBuffer(bytearray):
         return self.bytes.__getitem__(slice(start, stop))
 
     def __add__(self, data):
-        self.bytes += data
+        return ReadOnceBuffer(self.bytes + data)
 
     def __iadd__(self, data):
         self.bytes += data
@@ -19,7 +19,7 @@ class ReadOnceBuffer(bytearray):
         return str(self.bytes)
 
     def __repr__(self):
-        return repr(self.bytes)
+        return 'ReadOnceBuffer(b\'' + str(self.bytes) + '\')'
 
     def __len__(self):
         return len(self.bytes)

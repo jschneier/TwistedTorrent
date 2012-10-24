@@ -48,7 +48,7 @@ class ActiveTorrent(Torrent):
         self.client = client
         self.uploaded = 0
         self.downloaded = 0
-        self.piece_index = {piece: i for i, piece in enumerate(self.pieces)}
+        self.index_piece = {i: piece for i, piece in enumerate(self.pieces)}
         self.index_flags = [0 for _ in xrange(len(self.pieces))]
 
         #-1 because we need to set the number of blocks for final pieces

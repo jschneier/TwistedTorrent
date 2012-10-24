@@ -1,11 +1,10 @@
 import struct
 from message import Message
-from constants import pstr, handshake_len
 from read_once_buffer import ReadOnceBuffer
+from useful import pstr, handshake_len, sum_bytes
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
-
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. This serves as a client."""
 
@@ -35,13 +34,16 @@ class PeerProtocol(Protocol):
                 if DEBUG: print 'Parsed handshake, sending interested'
                 self.send('interested')
             else:
-                if DEBUG: print 'Incomplete handshake received'
-        else:
-            if DEBUG: print 'Other data received:', repr(data)
-            len_prefix, msg_id, payload = self.parse_message(data)
+                if DEBUG: print 'Incomplete handshake received, losing conn'
+                self.transport.loseConnection()
+
+        if DEBUG: print 'Other data received:', repr(data)
+        if self.bufsize >= 4:
+            while self.has_msg():
+                len_prefix, msg_id, payload = self.parse_message()
 
     def send(self, mtype, **kwargs):
-        """Send a message to our peers, also take care of state that determines
+        """Send a message to our peer, also take care of state that determines
         who is choking who and who is interested."""
 
         self.transport.write(Message(mtype, **kwargs))
@@ -54,6 +56,11 @@ class PeerProtocol(Protocol):
             self.peer_choking = True
         elif mtype == 'unchoke':
             self.peer_choking = False
+
+    def has_msg(self):
+        """Check if there is a full message to pull off, first 4 bytes
+        determine the necessary length and are not included in calc."""
+        return self.bufsize-4 >= sum_bytes(self.buf.peek(0, 4))
 
     @property
     def bufsize(self):
@@ -105,7 +112,7 @@ class PeerProtocol(Protocol):
         if not len_prefix: #keep alive message, ID is None
             return 0, None, None
         else:
-            message_id = ord(message[4]) #single byte that must be the 5th byte
+            message_id = ord(message[4])
             if message_id < 4:
                 return len_prefix, message_id, None
             else:

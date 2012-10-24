@@ -1,5 +1,5 @@
 import struct
-from constants import pstr
+from useful import pstr, sum_bytes
 
 class Message(str):
     """Subclassing of string, hijack the constructor with __new__ because
@@ -60,3 +60,9 @@ class Message(str):
     @staticmethod
     def port(**kwargs):
         return struct.pack('!IBH', 3, 9, kwargs['listen-port'])
+
+    @staticmethod
+    def make_struct_arg(length):
+        """Variable length messages need struct args dynamically created."""
+
+        num_i = length / 4

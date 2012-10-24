@@ -22,7 +22,7 @@ class ReadOnceBuffer(bytearray):
         return str(self.bytes)
 
     def __repr__(self):
-        return 'ReadOnceBuffer(b\'' + repr(self.bytes) + '\')'
+        return 'ReadOnceBuffer(b\'' + str(self.bytes) + '\')'
 
     def __len__(self):
         return len(self.bytes)

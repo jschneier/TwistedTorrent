@@ -30,7 +30,6 @@ class PeerProtocol(Protocol):
     def dataReceived(self, data):
         self.buf += data
         if DEBUG: print 'Data Received', repr(data)
-        if DEBUG: print 'Total Data', repr(self.buf)
 
         if not self.handshaked:
             if self.bufsize >= handshake_len:
@@ -43,10 +42,9 @@ class PeerProtocol(Protocol):
                 self.transport.loseConnection()
 
         if DEBUG: print 'Other data received:', repr(data)
-        if self.bufsize >= 4:
-            while self.has_msg():
-                prefix, msg_id, payload = self.parse_message()
-                getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(prefix, payload)
+        while self.bufsize >= 4 and self.has_msg():
+            prefix, msg_id, payload = self.parse_message()
+            getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(prefix, payload)
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -66,7 +64,7 @@ class PeerProtocol(Protocol):
     def has_msg(self):
         """Check if there is a full message to pull off, first 4 bytes
         determine the necessary length and are not included in calc."""
-        return self.bufsize-4 >= struct.unpack('!I', (self.buf.peek(0, 4)))[0]
+        return self.bufsize-4 >= struct.unpack('!I', str(self.buf.peek(0, 4)))[0]
 
     @property
     def bufsize(self):
@@ -99,7 +97,7 @@ class PeerProtocol(Protocol):
         pass 
 
     def piece(self, payload):
-        index, begin = struct.unpack_from('!II', payload)
+        index, begin = struct.unpack_from('!II', str(payload))
         block = payload[9:]
         self.factory.add(index, begin, block)
 
@@ -112,11 +110,11 @@ class PeerProtocol(Protocol):
         pass
 
     def parse_message(self):
-        prefix, = struct.unpack('!I', self.buf[:4])
+        prefix, = struct.unpack('!I', str(self.buf[:4]))
         if not prefix: #keep_alive message, ID is None
             return 0, None, None
         else:
-            message_id = ord(self.buf[0])
+            message_id = self.buf[0]
             if message_id < 4:
                 return prefix, message_id, None
             else:
@@ -135,7 +133,7 @@ class PeerProtocol(Protocol):
         if data[0] != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
 
-            if DEBUG: print 'Bad handhsake, losing connection'
+            if DEBUG: print 'Bad handhsake, losing connection', repr(self.buf)
             self.transport.loseConnection()
         else:
             self.handshaked = True

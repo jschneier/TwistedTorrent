@@ -5,8 +5,8 @@ class ReadOnceBuffer(bytearray):
     def __init__(self, data=None):
         self.bytes = bytearray() if data is None else bytearray(data)
 
-    def peek(self, start, stop):
-        return self.bytes.__getitem__(slice(start, stop))
+    def peek(self, start=None, stop=None, step=None):
+        return self.bytes.__getitem__(slice(start, stop, step))
 
     def __add__(self, data):
         return ReadOnceBuffer(self.bytes + data)

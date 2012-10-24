@@ -6,9 +6,6 @@ from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
 
-class HandshakeException(Exception):
-    pass
-
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. This serves as a client."""
 

@@ -19,7 +19,7 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.timer = None
-        self.data_buffer = ReadOnceBuffer()
+        self.buf = ReadOnceBuffer()
  
     def connectionMade(self):
         if DEBUG: print 'Successfully connected, sending handshake'
@@ -27,19 +27,21 @@ class PeerProtocol(Protocol):
                                 peer_id = self.factory.client.client_id)
 
     def dataReceived(self, data):
-        self.data_buffer += data
+        self.buf += data
         if DEBUG: print 'Data Received', repr(data)
-        if DEBUG: print 'Total Data', repr(self.data_buffer)
+        if DEBUG: print 'Total Data', repr(self.buf)
 
         if not self.handshaked:
             if self.bufsize >= handshake_len:
-                if DEBUG: print 'Received handshake, decoding'
-                self.decode_handshake(self.data_buffer[:handshake_len])
-                if DEBUG: print 'Decoded handshake, sending interested'
+                if DEBUG: print 'Received handshake, parsing'
+                self.parse_handshake(self.buf[:handshake_len])
+                if DEBUG: print 'Parsed handshake, sending interested'
                 self.send('interested')
+            else:
+                if DEBUG: print 'Incomplete handshake received'
         else:
             if DEBUG: print 'Other data received:', repr(data)
-            len_prefix, msg_id, payload = self.decode_message(data)
+            len_prefix, msg_id, payload = self.parse_message(data)
 
     def send(self, mtype, **kwargs):
         """Send a message to our peers, also take care of state that determines
@@ -58,7 +60,7 @@ class PeerProtocol(Protocol):
 
     @property
     def bufsize(self):
-        return len(self.data_buffer)
+        return len(self.buf)
 
     def keep_alive(self, *args):
         #TODO: reset timer
@@ -101,7 +103,7 @@ class PeerProtocol(Protocol):
         '''Not supported'''
         pass
 
-    def decode_message(self, message):
+    def parse_message(self, message):
         len_prefix = struct.unpack_from('!I', message)
         if not len_prefix: #keep alive message, ID is None
             return 0, None, None
@@ -112,7 +114,7 @@ class PeerProtocol(Protocol):
             else:
                 return len_prefix, message_id, message[5:]
 
-    def decode_handshake(self, data):
+    def parse_handshake(self, data):
         """
         Verify that our peer is sending us a well formed handshake, if not
         we then raise an exception that will close the connection.  If the
@@ -120,7 +122,7 @@ class PeerProtocol(Protocol):
         to True so that we know to accept further messages from this peer.
         """
 
-        if DEBUG: print 'Handshake being decoded'
+        if DEBUG: print 'Handshake being parsed'
 
         if ord(data[0]) != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
@@ -129,7 +131,7 @@ class PeerProtocol(Protocol):
             self.transport.loseConnection()
         else:
             self.handshaked = True
-            if DEBUG: print 'Handshake successfully decoded'
+            if DEBUG: print 'Handshake successfully parsed'
 
 class PeerProtocolFactory(ClientFactory):
     """
@@ -142,11 +144,6 @@ class PeerProtocolFactory(ClientFactory):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
-        self.bufsize = 0
-        self.buffer = []
-
-    def add(self, block_len, index, begin, block):
-        self.bufsize += block_len
 
     def clientConnectionLost(self, connector, reason):
         pass

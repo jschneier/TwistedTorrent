@@ -5,8 +5,13 @@ from read_once_buffer import ReadOnceBuffer
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
+
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. This serves as a client."""
+
+    ID_TO_MSG = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
+                 3: 'uninterested', 4: 'have', 5: 'bitfield', 6: 'request',
+                 7: 'piece', 8: 'cancel', 9: 'port' }
 
     def __init__(self):
         self.am_choking = True
@@ -41,6 +46,7 @@ class PeerProtocol(Protocol):
         if self.bufsize >= 4:
             while self.has_msg():
                 prefix, msg_id, payload = self.parse_message()
+                getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(prefix, payload)
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -93,11 +99,10 @@ class PeerProtocol(Protocol):
         pass 
 
     def piece(self, prefix, payload):
-        block_len = prefix - 9
         index = chr(payload[0])
         begin = chr(payload[1])
         block = payload[2:]
-        self.factory.add(block_len, index, begin, block)
+        self.factory.add(index, begin, block)
 
     def cancel(self, prefix, payload):
         #TODO
@@ -107,16 +112,16 @@ class PeerProtocol(Protocol):
         '''Not supported'''
         pass
 
-    def parse_message(self, message):
-        prefix = struct.unpack_from('!I', message)
-        if not prefix: #keep alive message, ID is None
+    def parse_message(self):
+        prefix = struct.unpack('!I', self.buf[:4])
+        if not prefix: #keep_alive message, ID is None
             return 0, None, None
         else:
-            message_id = ord(message[4])
+            message_id = ord(self.buf[4])
             if message_id < 4:
                 return prefix, message_id, None
             else:
-                return prefix, message_id, message[5:]
+                return prefix, message_id, self.buf[5:]
 
     def parse_handshake(self, data):
         """

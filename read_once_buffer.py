@@ -6,7 +6,10 @@ class ReadOnceBuffer(bytearray):
         self.bytes = bytearray() if data is None else bytearray(data)
 
     def peek(self, start=None, stop=None, step=None):
-        return self.bytes.__getitem__(slice(start, stop, step))
+        if stop is None:
+            return self.bytes.__getitem__(start)
+        else:
+            return self.bytes.__getitem__(slice(start, stop, step))
 
     def __add__(self, data):
         return ReadOnceBuffer(self.bytes + data)
@@ -28,6 +31,10 @@ class ReadOnceBuffer(bytearray):
         return self.bytes == other
 
     def __getitem__(self, slicer):
+        if isinstance(slicer, int):
+            if slicer >= len(self):
+                raise IndexError(slicer)
+
         ret = self.bytes.__getitem__(slicer)
         self.bytes.__delitem__(slicer)
 

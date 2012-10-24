@@ -5,7 +5,6 @@
     * Twisted
 
 #### TODO
-    * Fix sending (message class) piece method
     * Add hash verification of the pieces -- IMPORTANT
     * Pass things up through the factory
     * Implement asynchronous downloading with Twisted

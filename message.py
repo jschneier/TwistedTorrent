@@ -1,5 +1,5 @@
 import struct
-from useful import pstr, sum_bytes
+from constants import pstr
 
 class Message(str):
     """Subclassing of string, hijack the constructor with __new__ because

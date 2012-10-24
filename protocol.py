@@ -1,7 +1,7 @@
 import struct
 from message import Message
+from constants import pstr, handshake_len
 from read_once_buffer import ReadOnceBuffer
-from useful import pstr, handshake_len, sum_bytes
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
@@ -40,7 +40,7 @@ class PeerProtocol(Protocol):
         if DEBUG: print 'Other data received:', repr(data)
         if self.bufsize >= 4:
             while self.has_msg():
-                len_prefix, msg_id, payload = self.parse_message()
+                prefix, msg_id, payload = self.parse_message()
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -60,7 +60,7 @@ class PeerProtocol(Protocol):
     def has_msg(self):
         """Check if there is a full message to pull off, first 4 bytes
         determine the necessary length and are not included in calc."""
-        return self.bufsize-4 >= sum_bytes(self.buf.peek(0, 4))
+        return self.bufsize-4 >= struct.unpack('!I', (self.buf.peek(0, 4)))
 
     @property
     def bufsize(self):
@@ -82,41 +82,41 @@ class PeerProtocol(Protocol):
     def uninterested(self, *args):
         self.peer_interested = False
 
-    def have(self, len_prefix, payload):
+    def have(self, prefix, payload):
         pass
 
-    def bitfield(self, len_prefix, payload):
+    def bitfield(self, prefix, payload):
         '''Optional so we ignore it.'''
         pass
 
-    def request(self, len_prefix, payload):
+    def request(self, prefix, payload):
         pass 
 
-    def piece(self, len_prefix, payload):
-        block_len = len_prefix - 9
+    def piece(self, prefix, payload):
+        block_len = prefix - 9
         index = chr(payload[0])
         begin = chr(payload[1])
         block = payload[2:]
         self.factory.add(block_len, index, begin, block)
 
-    def cancel(self, len_prefix, payload):
+    def cancel(self, prefix, payload):
         #TODO
         pass
 
-    def port(self, len_prefix, payload):
+    def port(self, prefix, payload):
         '''Not supported'''
         pass
 
     def parse_message(self, message):
-        len_prefix = struct.unpack_from('!I', message)
-        if not len_prefix: #keep alive message, ID is None
+        prefix = struct.unpack_from('!I', message)
+        if not prefix: #keep alive message, ID is None
             return 0, None, None
         else:
             message_id = ord(message[4])
             if message_id < 4:
-                return len_prefix, message_id, None
+                return prefix, message_id, None
             else:
-                return len_prefix, message_id, message[5:]
+                return prefix, message_id, message[5:]
 
     def parse_handshake(self, data):
         """

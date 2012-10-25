@@ -1,8 +1,9 @@
 import struct
+import random
 from message import Message
 from bitarray import bitarray
-from constants import pstr, handshake_len
 from read_once_buffer import ReadOnceBuffer
+from constants import pstr, handshake_len, bsize
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
@@ -98,6 +99,7 @@ class PeerProtocol(Protocol):
         pass 
 
     def piece(self, payload):
+        self.factory.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
         block = payload[9:]
         self.factory.add(index, offset, block)
@@ -147,6 +149,7 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = []
+        self.requests = 0
 
     def buildProtocol(self, address):
         proto = ClientFactory.buildProtocol(self, address)
@@ -156,6 +159,19 @@ class PeerProtocolFactory(ClientFactory):
     def add(self, index, offset, block):
         self.torrent.add_block(index, offset, block)
 
+    def request(self):
+        while self.requests < 3:
+            index = random.choice(self.missing)
+            for proto in self.protos:
+                if proto.bitfield is not None and proto.bitfield[index] == True:
+                    proto.send('request', index, 0, bsize)
+                    self.requests += 1
+
     @property
     def connections(self):
         return len(self.protos)
+
+    @property
+    def missing(self):
+        return [index for index, flag
+                in enumerate(self.torrent.i_fs) if not flag]

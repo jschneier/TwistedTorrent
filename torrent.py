@@ -2,7 +2,10 @@ import sys
 import math
 import bencode
 from hashlib import sha1
+from collections import defaultdict
 from protocol import PeerProtocolFactory
+
+range = xrange
 
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
@@ -22,7 +25,7 @@ class Torrent(object):
         #break string pieces up into a list of those pieces
         pieces_string = self.info['pieces']
         self.pieces = [pieces_string[i: i+20]
-                        for i in xrange(0, len(pieces_string), 20)]
+                        for i in range(0, len(pieces_string), 20)]
 
         self.n_pieces = len(self.pieces)
         self.num_files = len(self.info['files']) if 'files' in self.info else 1
@@ -49,29 +52,29 @@ class ActiveTorrent(Torrent):
         self.client = client
         self.uploaded = 0
         self.downloaded = 0
-        self.i_p = {i: piece for i, piece in enumerate(self.pieces)}
-        self.i_fs = [0 for _ in xrange(self.n_pieces)]
+        self.index_piece = {i: piece for i, piece in enumerate(self.pieces)}
 
         #-1 because we need to set the number of blocks for the final piece
-        self.p_b_i = {index: {i: ''} for index in xrange(self.n_pieces)
-                            for i in xrange(self.blocks_pp-1)}
+        self.piece_block_flags = [[0 for _ in range(self.blocks_pp)]
+                                        for _ in range(self.n_pieces-1)]
+        self.piece_block_flags.append([0 for _ in range(self.block_fp)])
 
-        self.p_b_i[self.pieces[-1]] = {i: '' for i in xrange(self.blocks_fp)}
+        self.piece_block = defaultdict(lambda: defaultdict(str))
 
         self.factory = PeerProtocolFactory(client, self)
         self.outfile = 'temp_' + self.info_hash
 
     def add_block(self, index, offset, block):
         b_index = self.blocks_pp * offset / self.p_length
-        self.p_b_i[index][b_index] = block
-        if all(self.p_b_i[index][i] for i in xrange(len(self.p_b_i[index]))):
+        self.piece_block[index][b_index] = block
+        if all(self.piece_block_flags[index]):
             if self.check_hash(index):
                 self.write_piece(index)
             else:
                 raise ValueError('Incorrent hash obtained')
 
     def check_hash(self, index):
-        return self.i_p[index] == sha1(self._assemble_block(index)).digest()
+        return self.index_piece[index] == sha1(self._assemble_block(index)).digest()
 
     def write_piece(self, index):
         with open(self.outfile, 'ab') as out:
@@ -80,9 +83,8 @@ class ActiveTorrent(Torrent):
             self.clean_up(index)
 
     def clean_up(self, index):
-        self.i_fs[index] = 1
-        del self.i_p[index]
-        del self.p_b_i[index]
+        del self.index_piece[index]
+        del self.piece_block_index[index]
         if not self.left: #torrent is finished downloading
             self.finish()
 
@@ -95,8 +97,8 @@ class ActiveTorrent(Torrent):
         reactor.connectTCP(host, port, self.factory)
 
     def _assemble_block(self, index):
-        return ''.join(self.p_b_i[index][i] for i in
-                        xrange(len(self.p_b_i[index])))
+        return ''.join(self.piece_block_index[index][i] for i in
+                        range(len(self.piece_block_index[index])))
 
     @property
     def left(self):

@@ -5,10 +5,11 @@
     * Twisted
 
 #### TODO
-    * Add hash verification of the pieces -- IMPORTANT
-    * Pass things up through the factory
-    * Implement asynchronous downloading with Twisted
-    * Lots of bookeeping to do for protocol implementation
+    * Implement a strategy for requesting pieces, test that it works
+    * Think hard about where I want factory and ActiveTorrent to separate
+    * Impement torrent stopping itself, clean up extraneous references
+    * Refactor code, I feel as though there are many code smells throughout
+    * Reevaluate data structure
     * Implement the scrape method of a tracker
 
 #### Resources

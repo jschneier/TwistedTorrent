@@ -19,7 +19,6 @@ class PeerProtocol(Protocol):
         self.peer_choking = True
         self.peer_interested = False
         self.handshaked = False
-        self.timer = None
         self.buf = ReadOnceBuffer()
  
     def connectionMade(self):
@@ -29,7 +28,7 @@ class PeerProtocol(Protocol):
 
     def dataReceived(self, data):
         self.buf += data
-        if DEBUG: print 'Data Received', repr(data)
+        if DEBUG: print 'Data Received', repr(self.buf)
 
         if not self.handshaked:
             if self.bufsize >= handshake_len:
@@ -41,9 +40,9 @@ class PeerProtocol(Protocol):
                 if DEBUG: print 'Incomplete handshake received, losing conn'
                 self.transport.loseConnection()
 
-        if DEBUG: print 'Other data received:', repr(data)
         while self.bufsize >= 4 and self.has_msg():
             prefix, msg_id, payload = self.parse_message()
+            if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
             getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(prefix, payload)
 
     def send(self, mtype, **kwargs):
@@ -71,7 +70,6 @@ class PeerProtocol(Protocol):
         return len(self.buf)
 
     def keep_alive(self, *args):
-        #TODO: reset timer
         pass
 
     def choke(self, *args):
@@ -102,7 +100,6 @@ class PeerProtocol(Protocol):
         self.factory.add(index, begin, block)
 
     def cancel(self, prefix, payload):
-        #TODO
         pass
 
     def port(self, prefix, payload):
@@ -128,8 +125,6 @@ class PeerProtocol(Protocol):
         to True so that we know to accept further messages from this peer.
         """
 
-        if DEBUG: print 'Handshake being parsed'
-
         if data[0] != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
 
@@ -137,7 +132,6 @@ class PeerProtocol(Protocol):
             self.transport.loseConnection()
         else:
             self.handshaked = True
-            if DEBUG: print 'Handshake successfully parsed'
 
 class PeerProtocolFactory(ClientFactory):
     """
@@ -150,6 +144,9 @@ class PeerProtocolFactory(ClientFactory):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
+
+    def add(self, index, begin, block):
+        pass
 
     def clientConnectionLost(self, connector, reason):
         pass

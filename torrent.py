@@ -1,7 +1,7 @@
 import sys
 import math
-import hashlib
 import bencode
+from hashlib import sha1
 from protocol import PeerProtocolFactory
 
 class Torrent(object):
@@ -16,14 +16,15 @@ class Torrent(object):
 
         self.announce_url = torrent_dict['announce']
         self.info = torrent_dict['info']
-        self.info_hash = hashlib.sha1(bencode.bencode(self.info)).digest()
-        self.piece_length = self.info['piece length']
+        self.info_hash = sha1(bencode.bencode(self.info)).digest()
+        self.p_length = self.info['piece length']
 
         #break string pieces up into a list of those pieces
         pieces_string = self.info['pieces']
         self.pieces = [pieces_string[i: i+20]
                         for i in xrange(0, len(pieces_string), 20)]
 
+        self.n_pieces = len(self.pieces)
         self.num_files = len(self.info['files']) if 'files' in self.info else 1
         if self.num_files == 1:
             self.length = self.info['length']
@@ -34,11 +35,11 @@ class Torrent(object):
                                     for f in self.info['files']]
 
         #making assumption about even division
-        self.blocks_pp = self.length / self.piece_length
+        self.blocks_pp = self.length / self.p_length
 
         #bytes leftover for the last block
-        leftover = self.length - ((len(self.pieces) - 1) * self.piece_length)
-        self.blocks_fp = int(math.ceil(float(leftover) / self.piece_length))
+        leftover = self.length - ((self.n_pieces - 1) * self.p_length)
+        self.blocks_fp = int(math.ceil(float(leftover) / self.p_length))
 
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
@@ -48,17 +49,50 @@ class ActiveTorrent(Torrent):
         self.client = client
         self.uploaded = 0
         self.downloaded = 0
-        self.index_piece = {i: piece for i, piece in enumerate(self.pieces)}
-        self.index_flags = [0 for _ in xrange(len(self.pieces))]
+        self.i_p = {i: piece for i, piece in enumerate(self.pieces)}
+        self.i_fs = [0 for _ in xrange(self.n_pieces)]
 
-        #-1 because we need to set the number of blocks for final pieces
-        self.piece_block_index = {piece: {i: ''} for piece in self.pieces for i
-                                        in xrange(self.blocks_pp-1)}
-        self.piece_block_index[self.pieces[-1]] = {i: '' for i in
-                                            xrange(self.blocks_fp)}
+        #-1 because we need to set the number of blocks for the final piece
+        self.p_b_i = {index: {i: ''} for index in xrange(self.n_pieces)
+                            for i in xrange(self.blocks_pp-1)}
+
+        self.p_b_i[self.pieces[-1]] = {i: '' for i in xrange(self.blocks_fp)}
+
         self.factory = PeerProtocolFactory(client, self)
         self.peers = set()
         self.outfile = 'temp_' + self.info_hash
+
+    def add_block(self, index, offset, block):
+        b_index = self.blocks_pp * offset / self.p_length
+        self.p_b_i[index][b_index] = block
+        if all(self.p_b_i[index][i] for i in xrange(len(self.p_b_i[index]))):
+            if self.check_hash(index):
+                self.write_piece(index)
+            else:
+                raise ValueError('Incorrent hash obtained')
+
+    def check_hash(self, index):
+        return self.i_p[index] == sha1(self._assemble_block(index)).digest()
+
+    def write_piece(self, index):
+        with open(self.outfile, 'ab') as out:
+            out.seek(self.p_length * index)
+            out.write(self._assemble_block(index))
+
+        self.i_fs[index] = 1
+        del self.i_p[index]
+        del self.p_b_i[index]
+        if not self.i_p:
+            self.clean_up()
+
+    def connect_to_peer(self, (host, port)):
+        from twisted.internet import reactor
+        reactor.connectTCP(host, port, self.factory)
+        self.peers.add((host, port))
+
+    def _assemble_block(self, index):
+        return ''.join(self.p_b_i[index][i] for i in
+                        xrange(len(self.p_b_i[index])))
 
     @property
     def left(self):
@@ -68,18 +102,6 @@ class ActiveTorrent(Torrent):
     def connections(self):
         return len(self.peers)
 
-    def write_piece(self, index, data):
-        #TODO make sure this works for the last piece
-        with open(self.outfile, 'ab') as out:
-            out.seek(self.piece_length * index)
-            out.write(data)
-        #TODO set things to one and clear out the buffer
-        self.downloaded += len(data)
-
-    def connect_to_peer(self, (host, port)):
-        from twisted.internet import reactor
-        reactor.connectTCP(host, port, self.factory)
-        self.peers.add((host, port))
 
 if __name__ == '__main__':
     from client import TorrentClient

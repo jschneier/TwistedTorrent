@@ -47,19 +47,19 @@ class Message(str):
     @staticmethod
     def request(**kwargs):
         return struct.pack('!IBIII', 13, 6, kwargs['index'],
-                                kwargs['begin'], kwargs['length'])
+                                kwargs['offset'], kwargs['length'])
 
     @staticmethod
     def piece(**kwargs):
         length = len(kwargs['block'])
         arg = Message.make_struct_arg('!IBII', length)
         return struct.pack(arg, length + 9, 7, kwargs['index'],
-                                kwargs['begin'], kwargs['block'])
+                                kwargs['offset'], kwargs['block'])
 
     @staticmethod
     def cancel(**kwargs):
         return struct.pack('!IBIII', 13, 8, kwargs['index'],
-                                kwargs['begin'], kwargs['length'])
+                                kwargs['offset'], kwargs['length'])
 
     @staticmethod
     def port(**kwargs):

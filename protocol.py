@@ -1,5 +1,4 @@
 import struct
-import random
 from message import Message
 from bitarray import bitarray
 from read_once_buffer import ReadOnceBuffer
@@ -100,6 +99,7 @@ class PeerProtocol(Protocol):
     def piece(self, payload):
         self.factory.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
+        if DEBUG: print index, offset
         block = payload[9:]
         self.factory.add(index, offset, block)
 
@@ -123,7 +123,7 @@ class PeerProtocol(Protocol):
 
     def parse_handshake(self, data):
         """Verify that our peer is sending us a well formed handshake, if not
-        we close the connection.  If the handshake is well formed we set the
+        we close the connection. If the handshake is well formed we set the
         handshaked instance variable to True so that we know to accept further
         messages from this peer."""
 
@@ -166,14 +166,15 @@ class PeerProtocolFactory(ClientFactory):
     def make_requests(self):
         if DEBUG: print 'making requests'
         while self.requests < 1:
-            index = random.choice(self.missing)
+            index, offset_index = self.torrent.get_random()
+            offset = offset_index * bsize
             for proto in self.protos:
                 if proto.peer_bitfield is not None:
                     if proto.peer_bitfield[index] == True:
-                        proto.send('request', index=index, begin=0, length=bsize)
+                        proto.send('request', index=index, offset=offset, length=bsize)
                         self.requests += 1
                 else:
-                    proto.send('request', index=index, begin=0, length=bsize)
+                    proto.send('request', index=index, offset=offset, length=bsize)
                     self.requests += 1
 
     @property

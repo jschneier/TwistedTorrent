@@ -2,10 +2,9 @@ import sys
 import math
 import bencode
 from hashlib import sha1
+from random import choice
 from collections import defaultdict
 from protocol import PeerProtocolFactory
-
-range = xrange
 
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
@@ -25,7 +24,7 @@ class Torrent(object):
         #break string pieces up into a list of those pieces
         pieces_string = self.info['pieces']
         self.pieces = [pieces_string[i: i+20]
-                        for i in range(0, len(pieces_string), 20)]
+                        for i in xrange(0, len(pieces_string), 20)]
 
         self.n_pieces = len(self.pieces)
         self.num_files = len(self.info['files']) if 'files' in self.info else 1
@@ -55,9 +54,9 @@ class ActiveTorrent(Torrent):
         self.index_piece = {i: piece for i, piece in enumerate(self.pieces)}
 
         #-1 because we need to set the number of blocks for the final piece
-        self.piece_block_flags = [[0 for _ in range(self.blocks_pp)]
-                                        for _ in range(self.n_pieces-1)]
-        self.piece_block_flags.append([0 for _ in range(self.block_fp)])
+        self.block_flags = [[0 for _ in xrange(self.blocks_pp)]
+                                        for _ in xrange(self.n_pieces-1)]
+        self.block_flags.append([0 for _ in xrange(self.blocks_fp)])
 
         self.piece_block = defaultdict(lambda: defaultdict(str))
 
@@ -67,9 +66,9 @@ class ActiveTorrent(Torrent):
     def add_block(self, index, offset, block):
         b_index = self.blocks_pp * offset / self.p_length
         self.piece_block[index][b_index] = block
-        self.piece_block_flags[index][b_index] = 1
+        self.block_flags[index][b_index] = 1
 
-        if all(self.piece_block_flags[index]):
+        if all(self.block_flags[index]):
             if self.check_hash(index):
                 self.write_piece(index)
             else:
@@ -100,7 +99,14 @@ class ActiveTorrent(Torrent):
 
     def _assemble_block(self, index):
         return ''.join(self.piece_block[index][i] for i in
-                        range(len(self.piece_block[index])))
+                        xrange(len(self.piece_block[index])))
+
+    def get_random(self):
+        xaxis, yaxis = None, None
+        while xaxis is not None and yaxis != -1:
+            xaxis = choice(range(self.n_pieces))
+            yaxis = self.block_flags[xaxis].index(0)
+        return xaxis, yaxis
 
     @property
     def left(self):

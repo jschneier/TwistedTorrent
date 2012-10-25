@@ -3,11 +3,10 @@
 #### Requirements
     * bencode
     * Twisted
+    * bitarray
 
 #### TODO
     * Implement a strategy for requesting pieces, test that it works
-    * Think hard about where I want factory and ActiveTorrent to separate
-    * Implement torrent stopping itself, clean up extraneous references
     * Refactor code, I feel as though there are many code smells throughout
     * Reevaluate data structure
     * Implement the scrape method of a tracker

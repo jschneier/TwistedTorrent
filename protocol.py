@@ -1,5 +1,6 @@
 import struct
 from message import Message
+from bitarray import bitarray
 from constants import pstr, handshake_len
 from read_once_buffer import ReadOnceBuffer
 from twisted.internet.protocol import Protocol, ClientFactory
@@ -19,6 +20,7 @@ class PeerProtocol(Protocol):
         self.peer_choking = True
         self.peer_interested = False
         self.handshaked = False
+        self.peer_bitfield = None
         self.buf = ReadOnceBuffer()
  
     def connectionMade(self):
@@ -85,19 +87,20 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
 
     def have(self, prefix, payload):
-        pass
+        """We only use this if we previously received a bitfield message."""
+        if self.peer_bitfield is not None:
+            self.peer_bitfield[payload] = True
 
     def bitfield(self, prefix, payload):
-        """Optional so we ignore it."""
-        pass
+        self.peer_bitfield = bitarray(endian='big').frombytes(payload)
 
     def request(self, prefix, payload):
         pass 
 
     def piece(self, payload):
-        index, begin = struct.unpack_from('!II', str(payload))
+        index, offset = struct.unpack_from('!II', str(payload))
         block = payload[9:]
-        self.factory.add(index, begin, block)
+        self.factory.add(index, offset, block)
 
     def cancel(self, prefix, payload):
         pass
@@ -136,7 +139,7 @@ class PeerProtocol(Protocol):
 
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol. Maintains state
-    data across protocol instances."""
+    data across protocol instances and distributes strategy instructions."""
 
     protocol = PeerProtocol
 
@@ -150,5 +153,9 @@ class PeerProtocolFactory(ClientFactory):
         self.protos.append(proto)
         return proto
 
-    def add(self, index, begin, block):
-        pass
+    def add(self, index, offset, block):
+        self.torrent.add_block(index, offset, block)
+
+    @property
+    def connections(self):
+        return len(self.protos)

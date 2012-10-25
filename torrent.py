@@ -6,6 +6,8 @@ from random import choice
 from collections import defaultdict
 from protocol import PeerProtocolFactory
 
+DEBUG = True
+
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
  
@@ -64,6 +66,8 @@ class ActiveTorrent(Torrent):
         self.outfile = 'temp_' + self.info_hash
 
     def add_block(self, index, offset, block):
+        if DEBUG: print 'adding block'
+
         b_index = self.blocks_pp * offset / self.p_length
         self.piece_block[index][b_index] = block
         self.block_flags[index][b_index] = 1

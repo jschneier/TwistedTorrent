@@ -136,7 +136,6 @@ class PeerProtocol(Protocol):
             self.handshaked = True
 
     def connectionLost(self, reason):
-        print 'hi'
         self.factory.protos.remove(self)
 
 class PeerProtocolFactory(ClientFactory):
@@ -155,6 +154,11 @@ class PeerProtocolFactory(ClientFactory):
         proto = ClientFactory.buildProtocol(self, address)
         self.protos.append(proto)
         return proto
+
+    def __del__(self):
+        for proto in self.protos[:]:
+            proto.transport.loseConnection()
+            self.protos.remove(proto)
 
     def add(self, index, offset, block):
         self.torrent.add_block(index, offset, block)

@@ -67,6 +67,8 @@ class ActiveTorrent(Torrent):
     def add_block(self, index, offset, block):
         b_index = self.blocks_pp * offset / self.p_length
         self.piece_block[index][b_index] = block
+        self.piece_block_flags[index][b_index] = 1
+
         if all(self.piece_block_flags[index]):
             if self.check_hash(index):
                 self.write_piece(index)
@@ -84,21 +86,21 @@ class ActiveTorrent(Torrent):
 
     def clean_up(self, index):
         del self.index_piece[index]
-        del self.piece_block_index[index]
+        del self.piece_block[index]
         if not self.left: #torrent is finished downloading
             self.finish()
 
     def finish(self):
-        #TODO
-        pass
+        del self.factory
+        self.client.delete_torrent(self)
 
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
         reactor.connectTCP(host, port, self.factory)
 
     def _assemble_block(self, index):
-        return ''.join(self.piece_block_index[index][i] for i in
-                        range(len(self.piece_block_index[index])))
+        return ''.join(self.piece_block[index][i] for i in
+                        range(len(self.piece_block[index])))
 
     @property
     def left(self):

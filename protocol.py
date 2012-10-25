@@ -7,7 +7,7 @@ from twisted.internet.protocol import Protocol, ClientFactory
 DEBUG = True
 
 class PeerProtocol(Protocol):
-    """An instance of the BitTorrent protocol. This serves as a client."""
+    """An instance of the BitTorrent protocol. Encapsulates a connection."""
 
     ID_TO_MSG = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
                  3: 'uninterested', 4: 'have', 5: 'bitfield', 6: 'request',
@@ -88,7 +88,7 @@ class PeerProtocol(Protocol):
         pass
 
     def bitfield(self, prefix, payload):
-        '''Optional so we ignore it.'''
+        """Optional so we ignore it."""
         pass
 
     def request(self, prefix, payload):
@@ -103,7 +103,7 @@ class PeerProtocol(Protocol):
         pass
 
     def port(self, prefix, payload):
-        '''Not supported'''
+        """Not supported"""
         pass
 
     def parse_message(self):
@@ -118,12 +118,10 @@ class PeerProtocol(Protocol):
                 return prefix, message_id, self.buf[0: prefix-1] #-1 for id
 
     def parse_handshake(self, data):
-        """
-        Verify that our peer is sending us a well formed handshake, if not
-        we then raise an exception that will close the connection.  If the
-        handshake is well formed we set the handshaked instance variable
-        to True so that we know to accept further messages from this peer.
-        """
+        """Verify that our peer is sending us a well formed handshake, if not
+        we close the connection.  If the handshake is well formed we set the
+        handshaked instance variable to True so that we know to accept further
+        messages from this peer."""
 
         if data[0] != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
@@ -134,10 +132,8 @@ class PeerProtocol(Protocol):
             self.handshaked = True
 
 class PeerProtocolFactory(ClientFactory):
-    """
-    Factory to generate instances of the Peer protocol. Maintains state data
-    across protocol instances.
-    """
+    """Factory to generate instances of the Peer protocol. Maintains state
+    data across protocol instances."""
 
     protocol = PeerProtocol
 

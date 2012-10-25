@@ -59,7 +59,6 @@ class ActiveTorrent(Torrent):
         self.p_b_i[self.pieces[-1]] = {i: '' for i in xrange(self.blocks_fp)}
 
         self.factory = PeerProtocolFactory(client, self)
-        self.peers = set()
         self.outfile = 'temp_' + self.info_hash
 
     def add_block(self, index, offset, block):
@@ -78,17 +77,22 @@ class ActiveTorrent(Torrent):
         with open(self.outfile, 'ab') as out:
             out.seek(self.p_length * index)
             out.write(self._assemble_block(index))
+            self.clean_up(index)
 
+    def clean_up(self, index):
         self.i_fs[index] = 1
         del self.i_p[index]
         del self.p_b_i[index]
-        if not self.i_p:
-            self.clean_up()
+        if not self.left: #torrent is finished downloading
+            self.finish()
+
+    def finish(self):
+        #TODO
+        pass
 
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
         reactor.connectTCP(host, port, self.factory)
-        self.peers.add((host, port))
 
     def _assemble_block(self, index):
         return ''.join(self.p_b_i[index][i] for i in
@@ -97,11 +101,6 @@ class ActiveTorrent(Torrent):
     @property
     def left(self):
         return self.length - self.downloaded
-
-    @property
-    def connections(self):
-        return len(self.peers)
-
 
 if __name__ == '__main__':
     from client import TorrentClient

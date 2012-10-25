@@ -131,6 +131,9 @@ class PeerProtocol(Protocol):
         else:
             self.handshaked = True
 
+    def connectionLost(self):
+        self.factory.protos.remove(self)
+
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol. Maintains state
     data across protocol instances."""
@@ -140,13 +143,12 @@ class PeerProtocolFactory(ClientFactory):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
+        self.protos = []
+
+    def buildProtocol(self, address):
+        proto = ClientFactory.buildProtocol(self, address)
+        self.protos.append(proto)
+        return proto
 
     def add(self, index, begin, block):
-        pass
-
-    def clientConnectionLost(self, connector, reason):
-        pass
-        #need to pass this up to the controlling torrent
-
-    def clientConnectionFailed(self, connector, reason):
         pass

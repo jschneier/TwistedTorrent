@@ -102,8 +102,8 @@ class ActiveTorrent(Torrent):
                         xrange(len(self.piece_block[index])))
 
     def get_random(self):
-        xaxis, yaxis = None, None
-        while xaxis is not None and yaxis != -1:
+        xaxis, yaxis = None, -1
+        while yaxis == -1:
             xaxis = choice(range(self.n_pieces))
             yaxis = self.block_flags[xaxis].index(0)
         return xaxis, yaxis

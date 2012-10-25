@@ -45,6 +45,7 @@ class PeerProtocol(Protocol):
             prefix, msg_id, payload = self.parse_message()
             if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
             getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
+            self.factory.make_requests()
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -99,7 +100,6 @@ class PeerProtocol(Protocol):
     def piece(self, payload):
         self.factory.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
-        if DEBUG: print index, offset
         block = payload[9:]
         self.factory.add(index, offset, block)
 

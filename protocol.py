@@ -26,12 +26,11 @@ class PeerProtocol(Protocol):
  
     def connectionMade(self):
         if DEBUG: print 'Successfully connected, sending handshake'
-        self.send('handshake', info_hash= self.factory.torrent.info_hash,
-                                peer_id = self.factory.client.client_id)
+        self.send('handshake', info_hash=self.factory.torrent.info_hash,
+                                peer_id=self.factory.client.client_id)
 
     def dataReceived(self, data):
         self.buf += data
-        if DEBUG: print 'Data Received', repr(self.buf)
 
         if not self.handshaked:
             if self.bufsize >= handshake_len:
@@ -46,7 +45,7 @@ class PeerProtocol(Protocol):
         while self.bufsize >= 4 and self.has_msg():
             prefix, msg_id, payload = self.parse_message()
             if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
-            getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(prefix, payload)
+            getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -87,15 +86,15 @@ class PeerProtocol(Protocol):
     def uninterested(self, *args):
         self.peer_interested = False
 
-    def have(self, prefix, payload):
+    def have(self, payload):
         """We only use this if we previously received a bitfield message."""
         if self.peer_bitfield is not None:
             self.peer_bitfield[payload] = True
 
-    def bitfield(self, prefix, payload):
-        self.peer_bitfield = bitarray(endian='big').frombytes(payload)
+    def bitfield(self, payload):
+        self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
 
-    def request(self, prefix, payload):
+    def request(self, payload):
         pass 
 
     def piece(self, payload):
@@ -104,10 +103,10 @@ class PeerProtocol(Protocol):
         block = payload[9:]
         self.factory.add(index, offset, block)
 
-    def cancel(self, prefix, payload):
+    def cancel(self, payload):
         pass
 
-    def port(self, prefix, payload):
+    def port(self, payload):
         """Not supported"""
         pass
 
@@ -136,7 +135,8 @@ class PeerProtocol(Protocol):
         else:
             self.handshaked = True
 
-    def connectionLost(self):
+    def connectionLost(self, reason):
+        print 'hi'
         self.factory.protos.remove(self)
 
 class PeerProtocolFactory(ClientFactory):
@@ -159,12 +159,17 @@ class PeerProtocolFactory(ClientFactory):
     def add(self, index, offset, block):
         self.torrent.add_block(index, offset, block)
 
-    def request(self):
-        while self.requests < 3:
+    def make_requests(self):
+        if DEBUG: print 'making requests'
+        while self.requests < 1:
             index = random.choice(self.missing)
             for proto in self.protos:
-                if proto.bitfield is not None and proto.bitfield[index] == True:
-                    proto.send('request', index, 0, bsize)
+                if proto.peer_bitfield is not None:
+                    if proto.peer_bitfield[index] == True:
+                        proto.send('request', index=index, begin=0, length=bsize)
+                        self.requests += 1
+                else:
+                    proto.send('request', index=index, begin=0, length=bsize)
                     self.requests += 1
 
     @property
@@ -174,4 +179,4 @@ class PeerProtocolFactory(ClientFactory):
     @property
     def missing(self):
         return [index for index, flag
-                in enumerate(self.torrent.i_fs) if not flag]
+                in enumerate(self.torrent.index_flags) if not flag]

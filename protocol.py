@@ -167,7 +167,7 @@ class PeerProtocolFactory(ClientFactory):
     def make_requests(self):
         if DEBUG: print 'making requests'
         while self.requests < 15:
-            index, offset_index = self.torrent.get_random()
+            index, offset_index = self.torrent.get_block()
             offset = offset_index * bsize
             proto = choice(self.protos)
             if proto.peer_bitfield is not None:

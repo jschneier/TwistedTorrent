@@ -20,14 +20,22 @@ class Torrent(object):
         torrent_dict = bencode.bdecode(open(self.filename).read())
 
         self.announce_url = torrent_dict['announce']
-        self.info = torrent_dict['info']
-        self.info_hash = sha1(bencode.bencode(self.info)).digest()
-        self.piece_length = self.info['piece length']
+        info = torrent_dict['info']
+        self.info_hash = sha1(bencode.bencode(info)).digest()
+        self.piece_length = info['piece length']
+
+        if not 'files' in info:
+            self.length = info['length']
+            self.names_length = [[info['name'], self.length]]
+        else:
+            self.length = sum(f['length'] for f in info['files'])
+            self.names_length = [(f['path'][0], f['length'])
+                                    for f in info['files']]
 
         #break string pieces up into a list of those pieces
-        pieces_string = self.info['pieces']
+        pieces_string = info['pieces']
         hashes = [pieces_string[i: i+20] for i in xrange(0, len(pieces_string), 20)]
-        num_pieces = len(self.pieces)
+        num_pieces = len(hashes)
         blocks = self.piece_length / bsize
 
         #calculate size of last piece
@@ -36,15 +44,6 @@ class Torrent(object):
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
         self.pieces.append(FinalPiece(hashes[-1], final_blocks))
-
-        self.num_files = len(self.info['files']) if 'files' in self.info else 1
-        if self.num_files == 1:
-            self.length = self.info['length']
-            self.names = [self.info['name']] #make it a list so we can iterate
-        else:
-            self.length = sum(f['length'] for f in self.info['files'])
-            self.names_length = [(f['path'][0], f['length'])
-                                    for f in self.info['files']]
 
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
@@ -56,6 +55,7 @@ class ActiveTorrent(Torrent):
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
         self.outfile = 'temp_' + self.info_hash
+        self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
         piece = self.pieces[index]
@@ -75,11 +75,14 @@ class ActiveTorrent(Torrent):
         self.clean_up(index)
 
     def clean_up(self, index):
+        self.to_dl.remove(index)
         if not self.left: #torrent is finished downloading
             self.finish()
 
     def get_block(self):
-        return choice(self.pieces).first_nothave()
+        index = choice(list(self.to_dl)) #choice uses indexing, sets dont have
+        offset_index = self.pieces[index].first_nothave()
+        return index, offset_index
         
     def finish(self):
         del self.factory

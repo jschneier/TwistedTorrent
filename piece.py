@@ -29,7 +29,7 @@ class Piece(object):
         return ''.join(self.block_data[i] for i in xrange(len(self.blocks)))
 
     def check_hash(self):
-        return self.hash == hashlib.sha1(self.full()).digest()
+        return self.hash == hashlib.sha1(self.full_data).digest()
 
 class FinalPiece(Piece):
     pass

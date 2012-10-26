@@ -1,4 +1,5 @@
 import struct
+from random import choice
 from message import Message
 from bitarray import bitarray
 from read_once_buffer import ReadOnceBuffer
@@ -165,17 +166,17 @@ class PeerProtocolFactory(ClientFactory):
 
     def make_requests(self):
         if DEBUG: print 'making requests'
-        while self.requests < 1:
+        while self.requests < 15:
             index, offset_index = self.torrent.get_random()
             offset = offset_index * bsize
-            for proto in self.protos:
-                if proto.peer_bitfield is not None:
-                    if proto.peer_bitfield[index] == True:
-                        proto.send('request', index=index, offset=offset, length=bsize)
-                        self.requests += 1
-                else:
+            proto = choice(self.protos)
+            if proto.peer_bitfield is not None:
+                if proto.peer_bitfield[index] == True:
                     proto.send('request', index=index, offset=offset, length=bsize)
                     self.requests += 1
+            else:
+                proto.send('request', index=index, offset=offset, length=bsize)
+                self.requests += 1
 
     @property
     def connections(self):

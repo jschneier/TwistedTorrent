@@ -3,6 +3,7 @@ import math
 import bencode
 from hashlib import sha1
 from random import choice
+from constants import bsize
 from collections import defaultdict
 from protocol import PeerProtocolFactory
 
@@ -39,7 +40,7 @@ class Torrent(object):
                                     for f in self.info['files']]
 
         #making assumption about even division
-        self.blocks_pp = self.length / self.p_length
+        self.blocks_pp = self.p_length / bsize
 
         #bytes leftover for the last block
         leftover = self.length - ((self.n_pieces - 1) * self.p_length)
@@ -66,26 +67,32 @@ class ActiveTorrent(Torrent):
         self.outfile = 'temp_' + self.info_hash
 
     def add_block(self, index, offset, block):
-        if DEBUG: print 'adding block'
+        if index not in self.index_piece:
+            self.factory.requests -= 1
+            return 
+        print self.block_flags
 
         b_index = self.blocks_pp * offset / self.p_length
         self.piece_block[index][b_index] = block
         self.block_flags[index][b_index] = 1
 
         if all(self.block_flags[index]):
-            if self.check_hash(index):
-                self.write_piece(index)
-            else:
-                raise ValueError('Incorrent hash obtained')
+            self.write_piece(index)
+            #if self.check_hash(index):
+            #    self.write_piece(index)
+            #else:
+            #    raise ValueError('Incorrent hash obtained')
 
     def check_hash(self, index):
         return self.index_piece[index] == sha1(self._assemble_block(index)).digest()
 
     def write_piece(self, index):
-        with open(self.outfile, 'ab') as out:
+        block = self._assemble_block(index)
+        with open(self.outfile, 'a') as out:
             out.seek(self.p_length * index)
-            out.write(self._assemble_block(index))
-            self.clean_up(index)
+            out.write(block)
+        self.downoaded += len(block)
+        self.clean_up(index)
 
     def clean_up(self, index):
         del self.index_piece[index]
@@ -102,14 +109,17 @@ class ActiveTorrent(Torrent):
         reactor.connectTCP(host, port, self.factory)
 
     def _assemble_block(self, index):
-        return ''.join(self.piece_block[index][i] for i in
+        return ''.join(str(self.piece_block[index][i]) for i in
                         xrange(len(self.piece_block[index])))
 
     def get_random(self):
         xaxis, yaxis = None, -1
         while yaxis == -1:
             xaxis = choice(range(self.n_pieces))
-            yaxis = self.block_flags[xaxis].index(0)
+            try:
+                yaxis = self.block_flags[xaxis].index(0)
+            except ValueError:
+                yaxis = -1
         return xaxis, yaxis
 
     @property

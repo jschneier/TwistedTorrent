@@ -6,8 +6,7 @@
     * bitarray
 
 #### TODO
-    * Implement a strategy for requesting pieces, test that it works
-    * Refactor code, I feel as though there are many code smells throughout
+    * Make hash check work -- Important
     * Reevaluate data structure
     * Implement the scrape method of a tracker
 

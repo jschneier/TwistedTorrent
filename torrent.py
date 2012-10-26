@@ -4,7 +4,7 @@ import bencode
 from hashlib import sha1
 from random import choice
 from constants import bsize
-from collections import defaultdict
+from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
 
 DEBUG = True
@@ -22,14 +22,21 @@ class Torrent(object):
         self.announce_url = torrent_dict['announce']
         self.info = torrent_dict['info']
         self.info_hash = sha1(bencode.bencode(self.info)).digest()
-        self.p_length = self.info['piece length']
+        self.piece_length = self.info['piece length']
 
         #break string pieces up into a list of those pieces
         pieces_string = self.info['pieces']
-        self.pieces = [pieces_string[i: i+20]
-                        for i in xrange(0, len(pieces_string), 20)]
+        hashes = [pieces_string[i: i+20] for i in xrange(0, len(pieces_string), 20)]
+        num_pieces = len(self.pieces)
+        blocks = self.piece_length / bsize
 
-        self.n_pieces = len(self.pieces)
+        #calculate size of last piece
+        leftover = self.length - ((num_pieces - 1) * self.piece_length)
+        final_blocks = int(math.ceil(float(leftover) / self.piece_length))
+
+        self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
+        self.pieces.append(FinalPiece(hashes[-1], final_blocks))
+
         self.num_files = len(self.info['files']) if 'files' in self.info else 1
         if self.num_files == 1:
             self.length = self.info['length']
@@ -39,13 +46,6 @@ class Torrent(object):
             self.names_length = [(f['path'][0], f['length'])
                                     for f in self.info['files']]
 
-        #making assumption about even division
-        self.blocks_pp = self.p_length / bsize
-
-        #bytes leftover for the last block
-        leftover = self.length - ((self.n_pieces - 1) * self.p_length)
-        self.blocks_fp = int(math.ceil(float(leftover) / self.p_length))
-
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
 
@@ -54,52 +54,33 @@ class ActiveTorrent(Torrent):
         self.client = client
         self.uploaded = 0
         self.downloaded = 0
-        self.index_piece = {i: piece for i, piece in enumerate(self.pieces)}
-
-        #-1 because we need to set the number of blocks for the final piece
-        self.block_flags = [[0 for _ in xrange(self.blocks_pp)]
-                                        for _ in xrange(self.n_pieces-1)]
-        self.block_flags.append([0 for _ in xrange(self.blocks_fp)])
-
-        self.piece_block = defaultdict(lambda: defaultdict(str))
-
         self.factory = PeerProtocolFactory(client, self)
         self.outfile = 'temp_' + self.info_hash
 
     def add_block(self, index, offset, block):
-        if index not in self.index_piece:
-            self.factory.requests -= 1
-            return 
-        print self.block_flags
-
-        b_index = self.blocks_pp * offset / self.p_length
-        self.piece_block[index][b_index] = block
-        self.block_flags[index][b_index] = 1
-
-        if all(self.block_flags[index]):
-            self.write_piece(index)
-            #if self.check_hash(index):
-            #    self.write_piece(index)
-            #else:
-            #    raise ValueError('Incorrent hash obtained')
-
-    def check_hash(self, index):
-        return self.index_piece[index] == sha1(self._assemble_block(index)).digest()
+        piece = self.pieces[index]
+        piece.add(offset, block)
+        if piece.is_full:
+            if piece.check_hash():
+                self.write_piece(index)
+            else:
+                raise ValueError('Shit, hash didn\'t match')
 
     def write_piece(self, index):
-        block = self._assemble_block(index)
+        data = self.pieces[index].full_data
         with open(self.outfile, 'a') as out:
             out.seek(self.p_length * index)
-            out.write(block)
-        self.downoaded += len(block)
+            out.write(data)
+        self.downoaded += len(data)
         self.clean_up(index)
 
     def clean_up(self, index):
-        del self.index_piece[index]
-        del self.piece_block[index]
         if not self.left: #torrent is finished downloading
             self.finish()
 
+    def get_block(self):
+        return choice(self.pieces).first_nothave()
+        
     def finish(self):
         del self.factory
         self.client.delete_torrent(self)
@@ -107,20 +88,6 @@ class ActiveTorrent(Torrent):
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
         reactor.connectTCP(host, port, self.factory)
-
-    def _assemble_block(self, index):
-        return ''.join(str(self.piece_block[index][i]) for i in
-                        xrange(len(self.piece_block[index])))
-
-    def get_random(self):
-        xaxis, yaxis = None, -1
-        while yaxis == -1:
-            xaxis = choice(range(self.n_pieces))
-            try:
-                yaxis = self.block_flags[xaxis].index(0)
-            except ValueError:
-                yaxis = -1
-        return xaxis, yaxis
 
     @property
     def left(self):

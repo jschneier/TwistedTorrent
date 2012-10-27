@@ -2,7 +2,7 @@ import sys
 import math
 import bencode
 from hashlib import sha1
-from random import choice
+from random import sample
 from constants import bsize
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
@@ -80,7 +80,7 @@ class ActiveTorrent(Torrent):
             self.finish()
 
     def get_block(self):
-        index = choice(list(self.to_dl)) #choice uses indexing, sets dont have
+        index, = sample(self.to_dl, 1)
         offset_index = self.pieces[index].first_nothave()
         return index, offset_index
         

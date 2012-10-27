@@ -13,7 +13,7 @@ class Piece(object):
 
     @property
     def is_full(self):
-        return bool(Piece.check.search(self.blocks))
+        return not bool(Piece.check.search(self.blocks))
 
     def first_nothave(self):
         return Piece.check.search(self.blocks).start()
@@ -26,10 +26,16 @@ class Piece(object):
 
     @property
     def full_data(self):
-        return ''.join(self.block_data[i] for i in xrange(len(self.blocks)))
+        return ''.join(str(self.block_data[i]) for i in xrange(len(self.blocks)))
 
     def check_hash(self):
         return self.hash == hashlib.sha1(self.full_data).digest()
 
 class FinalPiece(Piece):
-    pass
+
+    def __init__(self, hash, blocks, size=False):
+        super(FinalPiece, self).__init__(hash, blocks)
+        self.size = size
+
+    def add_block(self, offset, data):
+        print 'hi'

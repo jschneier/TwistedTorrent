@@ -7,7 +7,7 @@
 
 #### TODO
     * Make hash check work -- Important
-    * Reevaluate data structure
+    * Write tests to verify
     * Implement the scrape method of a tracker
 
 #### Resources

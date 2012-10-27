@@ -30,12 +30,3 @@ class Piece(object):
 
     def check_hash(self):
         return self.hash == hashlib.sha1(self.full_data).digest()
-
-class FinalPiece(Piece):
-
-    def __init__(self, hash, blocks, size=False):
-        super(FinalPiece, self).__init__(hash, blocks)
-        self.size = size
-
-    def add_block(self, offset, data):
-        print 'hi'

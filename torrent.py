@@ -4,7 +4,7 @@ import bencode
 from hashlib import sha1
 from random import sample
 from constants import bsize
-from piece import Piece, FinalPiece
+from piece import Piece
 from protocol import PeerProtocolFactory
 
 DEBUG = True
@@ -43,7 +43,7 @@ class Torrent(object):
         final_blocks = int(math.ceil(float(leftover) / self.piece_length))
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
-        self.pieces.append(FinalPiece(hashes[-1], final_blocks))
+        self.pieces.append(Piece(hashes[-1], final_blocks))
 
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
@@ -69,9 +69,9 @@ class ActiveTorrent(Torrent):
     def write_piece(self, index):
         data = self.pieces[index].full_data
         with open(self.outfile, 'a') as out:
-            out.seek(self.p_length * index)
+            out.seek(self.piece_length * index)
             out.write(data)
-        self.downoaded += len(data)
+        self.downloaded += len(data)
         self.clean_up(index)
 
     def clean_up(self, index):

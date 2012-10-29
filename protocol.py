@@ -181,8 +181,3 @@ class PeerProtocolFactory(ClientFactory):
     @property
     def connections(self):
         return len(self.protos)
-
-    @property
-    def missing(self):
-        return [index for index, flag
-                in enumerate(self.torrent.index_flags) if not flag]

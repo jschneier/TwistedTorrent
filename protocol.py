@@ -101,7 +101,7 @@ class PeerProtocol(Protocol):
     def piece(self, payload):
         self.factory.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
-        block = payload[9:]
+        block = payload[8:]
         self.factory.add(index, offset, block)
 
     def cancel(self, payload):

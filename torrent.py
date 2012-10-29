@@ -58,6 +58,8 @@ class ActiveTorrent(Torrent):
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
+        if index not in self.to_dl: return #multiple requests for same piece
+
         piece = self.pieces[index]
         piece.add(offset, block)
         if piece.is_full:

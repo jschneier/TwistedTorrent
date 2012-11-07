@@ -6,9 +6,9 @@
     * bitarray
 
 #### TODO
-    * Make hash check work -- Important
+    * Correctly download the last piece
+    * Split up multiple files
     * Write tests to verify
-    * Implement the scrape method of a tracker
 
 #### Resources
 

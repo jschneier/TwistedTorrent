@@ -6,7 +6,8 @@
     * bitarray
 
 #### TODO
-    * Correctly download the last piece
+    * Write front end command line layer
+    * Do final block correctly
     * Split up multiple files
     * Write tests to verify
 

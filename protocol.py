@@ -170,12 +170,18 @@ class PeerProtocolFactory(ClientFactory):
             index, offset_index = self.torrent.get_block()
             offset = offset_index * bsize
             proto = choice(self.protos)
+            if index == len(self.torrent.pieces) - 1: #TODO
+                length = self.torrent.pieces[-1].fsize
+            else:
+                length = bsize
             if proto.peer_bitfield is not None:
                 if proto.peer_bitfield[index] == True:
-                    proto.send('request', index=index, offset=offset, length=bsize)
+                    if DEBUG: print 'requested', str(index), str(offset)
+                    proto.send('request', index=index, offset=offset, length=length)
                     self.requests += 1
             else:
-                proto.send('request', index=index, offset=offset, length=bsize)
+                if DEBUG: print 'requested', str(index), str(offset)
+                proto.send('request', index=index, offset=offset, length=length)
                 self.requests += 1
 
     @property

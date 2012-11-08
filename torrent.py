@@ -4,7 +4,7 @@ import bencode
 from hashlib import sha1
 from random import sample
 from constants import bsize
-from piece import Piece
+from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
 
 DEBUG = True
@@ -43,7 +43,7 @@ class Torrent(object):
         final_blocks = int(math.ceil(float(leftover) / self.piece_length))
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
-        self.pieces.append(Piece(hashes[-1], final_blocks))
+        self.pieces.append(FinalPiece(hashes[-1], final_blocks, leftover))
 
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
@@ -54,7 +54,7 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.outfile = 'temp_' + self.info_hash
+        self.outfile = open('temp_file', 'w')
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
@@ -70,9 +70,8 @@ class ActiveTorrent(Torrent):
 
     def write_piece(self, index):
         data = self.pieces[index].full_data
-        with open(self.outfile, 'a') as out:
-            out.seek(self.piece_length * index)
-            out.write(data)
+        self.outfile.seek(self.piece_length * index)
+        self.outfile.write(data)
         self.downloaded += len(data)
         self.clean_up(index)
 
@@ -82,11 +81,13 @@ class ActiveTorrent(Torrent):
             self.finish()
 
     def get_block(self):
+        if not self.to_dl: return
         index, = sample(self.to_dl, 1)
         offset_index = self.pieces[index].first_nothave()
         return index, offset_index
         
     def finish(self):
+        self.outfile.close()
         del self.factory
         self.client.delete_torrent(self)
 

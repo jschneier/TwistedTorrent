@@ -3,7 +3,7 @@ import sys
 import math
 import bencode
 from hashlib import sha1
-from random import sample
+from random import sample, randint
 from constants import bsize
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
@@ -55,7 +55,7 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.outfile = open('temp_file', 'w')
+        self.outfile = open('temp_' + str(randint(0, 10000)), 'w')
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):

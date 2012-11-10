@@ -6,6 +6,7 @@
     * bitarray
 
 #### TODO
+    * Make a request class so I can time them out
     * Implement numerous strategies
     * Track download progress
     * Write front end command line layer

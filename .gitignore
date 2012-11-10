@@ -1,6 +1,6 @@
 *.py[co]
 *.swp
+temp*
 *.torrent
 tests/
-*.txt
 *.jpg

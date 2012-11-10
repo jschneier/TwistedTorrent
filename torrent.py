@@ -55,7 +55,8 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.outfile = open('temp_' + str(randint(0, 10000)), 'w')
+        self.out_name = 'temp_ ' + str(randint(0, 100000))
+        self.outfile = open(self.out_name, 'w')
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
@@ -86,7 +87,7 @@ class ActiveTorrent(Torrent):
         index, = sample(self.to_dl, 1)
         offset_index = self.pieces[index].first_nothave()
         return index, offset_index
-        
+
     def finish(self):
         self.outfile.close()
         self.write_files()
@@ -98,11 +99,11 @@ class ActiveTorrent(Torrent):
         reactor.connectTCP(host, port, self.factory)
 
     def write_files(self):
-        with open(self.outfile) as out:
+        with open(self.out_name) as out:
             for fname, size in self.names_length:
                 with open(fname, 'w') as cur:
                     cur.write(out.read(size))
-        os.remove(self.outfile)
+        os.remove(self.out_name)
 
     @property
     def left(self):

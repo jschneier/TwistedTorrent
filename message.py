@@ -41,7 +41,7 @@ class Message(str):
     @staticmethod
     def bitfield(**kwargs):
         length = len(kwargs['bitfield'])
-        arg = Message.make_struct_arg('!IB', length)
+        arg = Message._make_struct_arg('!IB', length)
         return struct.pack(arg, length + 1, 5, kwargs['bitfield'])
 
     @staticmethod
@@ -52,7 +52,7 @@ class Message(str):
     @staticmethod
     def piece(**kwargs):
         length = len(kwargs['block'])
-        arg = Message.make_struct_arg('!IBII', length)
+        arg = Message._make_struct_arg('!IBII', length)
         return struct.pack(arg, length + 9, 7, kwargs['index'],
                                 kwargs['offset'], kwargs['block'])
 
@@ -66,7 +66,7 @@ class Message(str):
         return struct.pack('!IBH', 3, 9, kwargs['listen-port'])
 
     @staticmethod
-    def make_struct_arg(base, length):
+    def _make_struct_arg(base, length):
         """Variable length messages need struct args dynamically created."""
         struct_string = base + 'I' * length / 4
         remainder = length % 4

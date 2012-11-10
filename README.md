@@ -6,10 +6,11 @@
     * bitarray
 
 #### TODO
+    * Implement numerous strategies
+    * Track download progress
     * Write front end command line layer
-    * Do final block correctly
-    * Split up multiple files
     * Write tests to verify
+    * Would be nice - write out bencode (maybe not necessary)
 
 #### Resources
 

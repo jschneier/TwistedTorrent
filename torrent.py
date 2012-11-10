@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import bencode
@@ -88,12 +89,20 @@ class ActiveTorrent(Torrent):
         
     def finish(self):
         self.outfile.close()
+        self.write_files()
         del self.factory
         self.client.delete_torrent(self)
 
     def connect_to_peer(self, (host, port)):
         from twisted.internet import reactor
         reactor.connectTCP(host, port, self.factory)
+
+    def write_files(self):
+        with open(self.outfile) as out:
+            for fname, size in self.names_length:
+                with open(fname, 'w') as cur:
+                    cur.write(out.read(size))
+        os.remove(self.outfile)
 
     @property
     def left(self):

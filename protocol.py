@@ -1,6 +1,7 @@
 import struct
 from random import choice
 from message import Message
+from piece import FinalPiece
 from bitarray import bitarray
 from read_once_buffer import ReadOnceBuffer
 from constants import pstr, handshake_len, bsize
@@ -169,11 +170,8 @@ class PeerProtocolFactory(ClientFactory):
         while self.requests < 15:
             index, offset_index = self.torrent.get_block()
             offset = offset_index * bsize
+            length = self.get_request_length(index, offset_index)
             proto = choice(self.protos)
-            if index == len(self.torrent.pieces) - 1: #TODO
-                length = self.torrent.pieces[-1].fsize
-            else:
-                length = bsize
             if proto.peer_bitfield is not None:
                 if proto.peer_bitfield[index] == True:
                     if DEBUG: print 'requested', str(index), str(offset)
@@ -183,6 +181,13 @@ class PeerProtocolFactory(ClientFactory):
                 if DEBUG: print 'requested', str(index), str(offset)
                 proto.send('request', index=index, offset=offset, length=length)
                 self.requests += 1
+
+    def get_request_length(self, index, offset_index):
+        piece = self.torrent.pieces[index]
+        if isinstance(piece, FinalPiece) and piece.is_last_block(offset_index):
+            return piece.fsize
+        else:
+            return bsize
 
     @property
     def connections(self):

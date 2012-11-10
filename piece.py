@@ -36,3 +36,6 @@ class FinalPiece(Piece):
     def __init__(self, hash, blocks, fsize):
         super(FinalPiece, self).__init__(hash, blocks)
         self.fsize = fsize
+
+    def is_last_block(self, offset_index):
+        return offset_index == len(self.blocks) - 1

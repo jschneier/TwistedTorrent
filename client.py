@@ -86,5 +86,9 @@ class TorrentClient(object):
 
         del self.torrents[deletion_index]
 
+        if not self.torrents:
+            from twisted.internet import reactor
+            reactor.stop()
+
 class AnnounceError(Exception):
     pass

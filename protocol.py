@@ -151,11 +151,6 @@ class PeerProtocolFactory(ClientFactory):
         self.protos.append(proto)
         return proto
 
-    def __del__(self):
-        for proto in self.protos[:]:
-            proto.transport.loseConnection()
-            self.protos.remove(proto)
-
     def add(self, index, offset, block):
         self.torrent.add_block(index, offset, block)
 

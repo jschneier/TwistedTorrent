@@ -113,4 +113,4 @@ class ActiveTorrent(Torrent):
 
 if __name__ == '__main__':
     from client import TorrentClient
-    client = TorrentClient(ActiveTorrent(sys.argv[1]))
+    client = TorrentClient(sys.argv[1:]).start()

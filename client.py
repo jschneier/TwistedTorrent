@@ -85,10 +85,11 @@ class TorrentClient(object):
             raise Exception('No torrents in the list with same id')
 
         del self.torrents[deletion_index]
+        if not self.torrents: self.stop()
 
-        if not self.torrents:
-            from twisted.internet import reactor
-            reactor.stop()
+    def stop(self):
+        from twisted.internet import reactor
+        reactor.stop()
 
 class AnnounceError(Exception):
     pass

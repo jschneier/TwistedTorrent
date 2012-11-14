@@ -13,12 +13,14 @@ class TorrentClient(object):
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')
         self.torrents = [ActiveTorrent(self, torrent) for torrent in torrents]
+
+    def start(self):
         for torrent in self.torrents:
-            self.begin_download(torrent)
+            self._download(torrent)
         from twisted.internet import reactor
         reactor.run()
 
-    def begin_download(self, torrent):
+    def _download(self, torrent):
         host_ports = self.announce(torrent, type='started')
         for host_port in host_ports:
             torrent.connect_to_peer(host_port)

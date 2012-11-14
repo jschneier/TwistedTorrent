@@ -1,5 +1,4 @@
 import struct
-from random import choice
 from message import Message
 from piece import FinalPiece
 from bitarray import bitarray
@@ -24,9 +23,9 @@ class PeerProtocol(Protocol):
         self.handshaked = False
         self.peer_bitfield = None
         self.buf = ReadOnceBuffer()
+        self.requests = 0
  
     def connectionMade(self):
-        if DEBUG: print 'Successfully connected, sending handshake'
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
                                 peer_id=self.factory.client.client_id)
 
@@ -35,12 +34,9 @@ class PeerProtocol(Protocol):
 
         if not self.handshaked:
             if self.bufsize >= handshake_len:
-                if DEBUG: print 'Received handshake, parsing'
                 self.parse_handshake(self.buf[:handshake_len])
-                if DEBUG: print 'Parsed handshake, sending interested'
                 self.send('interested')
             else:
-                if DEBUG: print 'Incomplete handshake received, losing conn'
                 self.transport.loseConnection()
 
         while self.bufsize >= 4 and self.has_msg():
@@ -100,7 +96,7 @@ class PeerProtocol(Protocol):
         pass 
 
     def piece(self, payload):
-        self.factory.requests -= 1
+        self.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
         block = payload[8:]
         self.factory.add(index, offset, block)
@@ -132,7 +128,6 @@ class PeerProtocol(Protocol):
         if data[0] != len(pstr) or data[1:20] != pstr\
             or data[28:48] != self.factory.torrent.info_hash:
 
-            if DEBUG: print 'Bad handhsake, losing connection', repr(self.buf)
             self.transport.loseConnection()
         else:
             self.handshaked = True
@@ -150,7 +145,6 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = []
-        self.requests = 0
 
     def buildProtocol(self, address):
         proto = ClientFactory.buildProtocol(self, address)
@@ -166,23 +160,20 @@ class PeerProtocolFactory(ClientFactory):
         self.torrent.add_block(index, offset, block)
 
     def make_requests(self):
-        if DEBUG: print 'making requests'
-        while self.requests < 15:
-            index, offset_index = self.torrent.get_block()
-            offset = offset_index * bsize
-            length = self.get_request_length(index, offset_index)
-            proto = choice(self.protos)
-            if proto.peer_bitfield is not None:
-                if proto.peer_bitfield[index] == True:
-                    if DEBUG: print 'requested', str(index), str(offset)
+        for proto in self.protos:
+            if proto.requests < 5 and proto.handshaked: #maybe add handshake and choking data
+                index, offset_index = self.torrent.get_block()
+                offset = offset_index * bsize
+                length = self._get_request_length(index, offset_index)
+                if proto.peer_bitfield is not None:
+                    if proto.peer_bitfield[index] == True:
+                        proto.send('request', index=index, offset=offset, length=length)
+                        proto.requests += 1
+                else:
                     proto.send('request', index=index, offset=offset, length=length)
-                    self.requests += 1
-            else:
-                if DEBUG: print 'requested', str(index), str(offset)
-                proto.send('request', index=index, offset=offset, length=length)
-                self.requests += 1
+                    proto.requests += 1
 
-    def get_request_length(self, index, offset_index):
+    def _get_request_length(self, index, offset_index):
         piece = self.torrent.pieces[index]
         if isinstance(piece, FinalPiece) and piece.is_last_block(offset_index):
             return piece.fsize

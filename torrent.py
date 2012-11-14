@@ -55,7 +55,7 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.out_name = 'temp_ ' + str(randint(0, 100000))
+        self.out_name = 'temp_' + str(randint(0, 100000))
         self.outfile = open(self.out_name, 'w')
         self.to_dl = set(range(len(self.pieces)))
 

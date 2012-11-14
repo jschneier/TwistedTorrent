@@ -24,6 +24,11 @@ class Piece(object):
         self.block_data[index] = data
         self.blocks = self.blocks[:index] + '1' + self.blocks[index+1:]
 
+    def has_block(self, offset):
+        #offset is in bytes, need to get to index
+        index = offset / bsize
+        return self.blocks[index] == '1'
+
     @property
     def full_data(self):
         return ''.join(str(self.block_data[i]) for i in xrange(len(self.blocks)))

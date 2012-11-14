@@ -21,22 +21,20 @@ class TorrentClient(object):
         reactor.run()
 
     def _download(self, torrent):
-        host_ports = self.announce(torrent, type='started')
+        host_ports = self.announce(torrent, 'started')
         for host_port in host_ports:
             torrent.connect_to_peer(host_port)
 
-    def announce(self, torrent, type=None):
+    def announce(self, torrent, etype):
         """Encode and send the request to the tracker and then parse the
         response to get the host and ports of the specified peers."""
 
-        url = self._build_url(torrent, type)
-
+        url = self._build_url(torrent, etype)
         response = urllib.urlopen(url).read()
         if not response:
             raise AnnounceError('No response from tracker for url %s' % url)
 
         tracker_dict = bencode.bdecode(response)
-
         if 'failure reason' in tracker_dict:
             raise AnnounceError('''failure reason key in tracker response\
                                     %s:''' % tracker_dict['failure reason'])
@@ -51,12 +49,9 @@ class TorrentClient(object):
 
         return host_ports
 
-    def _build_url(self, torrent, type):
-        """Create the url that is sent to the tracker. The type that is
+    def _build_url(self, torrent, etype):
+        """Create the url that is sent to the tracker. The etype that is
         specified must be one of started, stopped or finished."""
-
-        if type is None:
-            raise AnnounceError('Must specify type of request, eg. started')
 
         announce_query = {
             'info_hash': torrent.info_hash,
@@ -65,7 +60,7 @@ class TorrentClient(object):
             'uploaded': torrent.uploaded,
             'downloaded': torrent.downloaded,
             'left': torrent.left,
-            'event': type
+            'event': etype
         }
 
         base = torrent.announce_url

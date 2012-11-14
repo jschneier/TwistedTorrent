@@ -3,7 +3,7 @@ import sys
 import math
 import bencode
 from hashlib import sha1
-from random import sample, randint
+from random import randint
 from constants import bsize
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
@@ -42,9 +42,10 @@ class Torrent(object):
         #calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
         final_blocks = int(math.ceil(float(leftover) / bsize))
+        final_size = leftover % bsize
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
-        self.pieces.append(FinalPiece(hashes[-1], final_blocks, leftover))
+        self.pieces.append(FinalPiece(hashes[-1], final_blocks, final_size))
 
 class ActiveTorrent(Torrent):
     """Represents a torrent that is in the process of being downloaded."""
@@ -61,8 +62,9 @@ class ActiveTorrent(Torrent):
 
     def add_block(self, index, offset, block):
         if index not in self.to_dl: return #same piece coming in again
-
         piece = self.pieces[index]
+        if piece.has_block(offset): return #same block coming in again
+
         piece.add(offset, block)
         if piece.is_full:
             if piece.check_hash():
@@ -84,7 +86,7 @@ class ActiveTorrent(Torrent):
 
     def get_block(self):
         if not self.to_dl: return
-        index, = sample(self.to_dl, 1)
+        index = min(self.to_dl)
         offset_index = self.pieces[index].first_nothave()
         return index, offset_index
 

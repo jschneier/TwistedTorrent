@@ -41,7 +41,7 @@ class Torrent(object):
 
         #calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
-        final_blocks = int(math.ceil(float(leftover) / self.piece_length))
+        final_blocks = int(math.ceil(float(leftover) / bsize))
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
         self.pieces.append(FinalPiece(hashes[-1], final_blocks, leftover))
@@ -60,7 +60,7 @@ class ActiveTorrent(Torrent):
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
-        if index not in self.to_dl: return #multiple requests for same piece
+        if index not in self.to_dl: return #same piece coming in again
 
         piece = self.pieces[index]
         piece.add(offset, block)

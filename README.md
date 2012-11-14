@@ -6,8 +6,7 @@
     * bitarray
 
 #### TODO
-    * Make a request class so I can time them out
-    * Each protocol instances should have a maximum number of requests out
+    * Implement seeding
     * Implement cancel method
     * Add a bitfield parameter that we send
     * Implement numerous strategies

@@ -1,33 +1,31 @@
-import re
 import hashlib
+import bitarray
 from constants import BSIZE
 
 class Piece(object):
 
-    check = re.compile(r'0')
-    
     def __init__(self, hash, blocks):
         self.hash = hash
-        self.blocks = '0' * blocks
+        self.blocks = bitarray.bitarray(blocks)
         self.block_data = {}
 
     @property
     def is_full(self):
-        return not bool(Piece.check.search(self.blocks))
+        return all(self.blocks)
 
     def first_nothave(self):
-        return Piece.check.search(self.blocks).start()
+        return self.blocks.search(bitarray.bitarray('0'), 1)[0]
 
     def add(self, offset, data):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
         self.block_data[index] = data
-        self.blocks = self.blocks[:index] + '1' + self.blocks[index+1:]
+        self.blocks[index] = 1
 
     def has_block(self, offset):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
-        return self.blocks[index] == '1'
+        return self.blocks[index] == 1
 
     @property
     def full_data(self):

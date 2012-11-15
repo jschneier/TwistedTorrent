@@ -1,5 +1,5 @@
 import struct
-from constants import pstr
+from constants import PSTR
 
 class Message(str):
     """Subclassing of string, hijack the constructor with __new__ because
@@ -10,9 +10,9 @@ class Message(str):
 
     @staticmethod
     def handshake(**kwargs):
-        length = chr(len(pstr))
+        length = chr(len(PSTR))
         resvd = chr(0) * 8
-        return length + pstr + resvd + kwargs['info_hash'] + kwargs['peer_id']
+        return length + PSTR + resvd + kwargs['info_hash'] + kwargs['peer_id']
 
     @staticmethod
     def keep_alive(**kwargs):

@@ -1,9 +1,8 @@
 import struct
 from message import Message
-from piece import FinalPiece
 from bitarray import bitarray
 from read_once_buffer import ReadOnceBuffer
-from constants import pstr, handshake_len, bsize
+from constants import PSTR, HANDSHAKE_LEN, BSIZE
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = True
@@ -33,13 +32,13 @@ class PeerProtocol(Protocol):
         self.buf += data
 
         if not self.handshaked:
-            if self.bufsize >= handshake_len:
-                self.parse_handshake(self.buf[:handshake_len])
+            if self.bufsize >= HANDSHAKE_LEN:
+                self.parse_handshake(self.buf[:HANDSHAKE_LEN])
                 self.send('interested')
             else:
                 self.transport.loseConnection()
 
-        while self.bufsize >= 4 and self.has_msg():
+        while self.has_msg():
             prefix, msg_id, payload = self.parse_message()
             if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
             getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
@@ -56,14 +55,14 @@ class PeerProtocol(Protocol):
         elif mtype == 'not_interested':
             self.am_interested = False
         elif mtype == 'choke':
-            self.peer_choking = True
+            self.am_choking = True
         elif mtype == 'unchoke':
-            self.peer_choking = False
+            self.am_choking = False
 
     def has_msg(self):
         """Check if there is a full message to pull off, first 4 bytes
         determine the necessary length and are not included in calc."""
-        return self.bufsize-4 >= struct.unpack('!I', str(self.buf.peek(0, 4)))[0]
+        return self.bufsize >= 4 and self.bufsize-4 >= struct.unpack('!I', str(self.buf.peek(0, 4)))[0]
 
     @property
     def bufsize(self):
@@ -93,7 +92,7 @@ class PeerProtocol(Protocol):
         self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
 
     def request(self, payload):
-        pass 
+        pass
 
     def piece(self, payload):
         self.requests -= 1
@@ -112,12 +111,12 @@ class PeerProtocol(Protocol):
         prefix, = struct.unpack('!I', str(self.buf[:4]))
         if not prefix: #keep_alive message, ID is None
             return 0, None, None
+
+        message_id = self.buf[0]
+        if message_id < 4:
+            return prefix, message_id, None
         else:
-            message_id = self.buf[0]
-            if message_id < 4:
-                return prefix, message_id, None
-            else:
-                return prefix, message_id, self.buf[0: prefix-1] #-1 for id
+            return prefix, message_id, self.buf[0: prefix-1] #-1 for id
 
     def parse_handshake(self, data):
         """Verify that our peer is sending us a well formed handshake, if not
@@ -125,7 +124,7 @@ class PeerProtocol(Protocol):
         handshaked instance variable to True so that we know to accept further
         messages from this peer."""
 
-        if data[0] != len(pstr) or data[1:20] != pstr\
+        if data[0] != len(PSTR) or data[1:20] != PSTR\
             or data[28:48] != self.factory.torrent.info_hash:
 
             self.transport.loseConnection()
@@ -156,25 +155,10 @@ class PeerProtocolFactory(ClientFactory):
 
     def make_requests(self):
         for proto in self.protos:
-            if proto.requests < 5 and proto.handshaked: #maybe add handshake and choking data
+            if proto.requests < 5 and proto.handshaked:
                 index, offset_index = self.torrent.get_block()
-                offset = offset_index * bsize
-                length = self._get_request_length(index, offset_index)
-                if proto.peer_bitfield is not None:
-                    if proto.peer_bitfield[index] == True:
-                        proto.send('request', index=index, offset=offset, length=length)
-                        proto.requests += 1
-                else:
+                offset = offset_index * BSIZE
+                length = self.torrent.pieces[index].get_size(offset_index)
+                if proto.peer_bitfield is None or proto.peer_bitfield[index]:
                     proto.send('request', index=index, offset=offset, length=length)
                     proto.requests += 1
-
-    def _get_request_length(self, index, offset_index):
-        piece = self.torrent.pieces[index]
-        if isinstance(piece, FinalPiece) and piece.is_last_block(offset_index):
-            return piece.fsize
-        else:
-            return bsize
-
-    @property
-    def connections(self):
-        return len(self.protos)

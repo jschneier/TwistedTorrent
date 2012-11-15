@@ -1,3 +1,3 @@
-pstr = 'BitTorrent protocol'
-handshake_len = 68
-bsize = 16384 # 2**14
+PSTR = 'BitTorrent protocol'
+HANDSHAKE_LEN = 68
+BSIZE = 16384 # 2**14

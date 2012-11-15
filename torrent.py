@@ -4,7 +4,7 @@ import math
 import bencode
 from hashlib import sha1
 from random import randint
-from constants import bsize
+from constants import BSIZE
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
 
@@ -37,12 +37,12 @@ class Torrent(object):
         pieces_string = info['pieces']
         hashes = [pieces_string[i: i+20] for i in xrange(0, len(pieces_string), 20)]
         num_pieces = len(hashes)
-        blocks = self.piece_length / bsize
+        blocks = self.piece_length / BSIZE
 
         #calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
-        final_blocks = int(math.ceil(float(leftover) / bsize))
-        final_size = leftover % bsize
+        final_blocks = int(math.ceil(float(leftover) / BSIZE))
+        final_size = leftover % BSIZE
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
         self.pieces.append(FinalPiece(hashes[-1], final_blocks, final_size))
@@ -61,7 +61,6 @@ class ActiveTorrent(Torrent):
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
-        if index not in self.to_dl: return #same piece coming in again
         piece = self.pieces[index]
         if piece.has_block(offset): return #same block coming in again
 
@@ -69,6 +68,7 @@ class ActiveTorrent(Torrent):
         if piece.is_full:
             if piece.check_hash():
                 self.write_piece(index)
+                if not self.left: self.finish()
             else:
                 raise ValueError('Shit, hash didn\'t match')
 
@@ -77,12 +77,7 @@ class ActiveTorrent(Torrent):
         self.outfile.seek(self.piece_length * index)
         self.outfile.write(data)
         self.downloaded += len(data)
-        self.clean_up(index)
-
-    def clean_up(self, index):
         self.to_dl.remove(index)
-        if not self.left: #torrent is finished downloading
-            self.finish()
 
     def get_block(self):
         if not self.to_dl: return
@@ -93,7 +88,6 @@ class ActiveTorrent(Torrent):
     def finish(self):
         self.outfile.close()
         self.write_files()
-        del self.factory
         self.client.delete_torrent(self)
 
     def connect_to_peer(self, (host, port)):
@@ -113,4 +107,4 @@ class ActiveTorrent(Torrent):
 
 if __name__ == '__main__':
     from client import TorrentClient
-    client = TorrentClient(sys.argv[1:]).start()
+    TorrentClient(sys.argv[1]).start()

@@ -12,7 +12,7 @@ class TorrentClient(object):
         self.port = 6881
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')
-        self.torrents = [ActiveTorrent(self, torrent) for torrent in torrents]
+        self.torrents = {ActiveTorrent(self, torrent) for torrent in torrents}
 
     def start(self):
         for torrent in self.torrents:
@@ -43,6 +43,7 @@ class TorrentClient(object):
         if isinstance(peers_raw, dict):
             raise AnnounceError('peers as dictionary model not implemented')
 
+        #break into 6 byte chunks - 4 for ip 2 for port
         peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
         peers = (map(ord, peer) for peer in peers_bytes)
         host_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
@@ -71,16 +72,9 @@ class TorrentClient(object):
     def delete_torrent(self, torrent):
         '''Remove a torrent that has finished downloading.'''
 
-        torrent_id = id(torrent)
-        for index, torrent in enumerate(self.torrents):
-            if id(torrent) == torrent_id:
-                deletion_index = index
-                break
-        else:
-            raise Exception('No torrents in the list with same id')
-
-        del self.torrents[deletion_index]
-        if not self.torrents: self.stop()
+        self.torrents.remove(torrent)
+        if not self.torrents:
+            self.stop()
 
     def stop(self):
         from twisted.internet import reactor

@@ -82,7 +82,7 @@ class ActiveTorrent(Torrent):
     def get_block(self):
         if not self.to_dl: return
         index = min(self.to_dl)
-        offset_index = self.pieces[index].first_nothave()
+        offset_index = self.pieces[index].next_piece
         return index, offset_index
 
     def finish(self):

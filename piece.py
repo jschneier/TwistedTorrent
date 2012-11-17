@@ -8,24 +8,23 @@ class Piece(object):
         self.hash = hash
         self.blocks = bitarray.bitarray(blocks)
         self.block_data = {}
+        self.next_piece = 0
 
     @property
     def is_full(self):
-        return all(self.blocks)
-
-    def first_nothave(self):
-        return self.blocks.search(bitarray.bitarray('0'), 1)[0]
+        return self.next_piece == len(self.blocks)
 
     def add(self, offset, data):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
         self.block_data[index] = data
-        self.blocks[index] = 1
+        self.blocks[index] = True
+        self.next_piece += 1
 
     def has_block(self, offset):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
-        return self.blocks[index] == 1
+        return self.blocks[index] == True
 
     @property
     def full_data(self):

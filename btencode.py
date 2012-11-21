@@ -1,9 +1,3 @@
-class BTDecodeError(Exception):
-    pass
-
-class BTEncodeError(Exception):
-    pass
-
 def decode_string(s, start):
     colon = s.find(':', start)
     length = int(s[start:colon])
@@ -37,7 +31,7 @@ def decode_dict(s, start):
     return ret, start + 1
 
 '''
-If the character at position start is in 0-9 True the or will short circuit and
+If the character at position start is in 0-9 the or will short circuit and
 True will be returned, at which point the results of decode_string will be
 returned; otherwise the or will return the character at position start and the
 appropriate function from decoders will be called.
@@ -79,3 +73,9 @@ def btencode(stuff):
 
 encoders = {dict: encode_dict, list: encode_list,
             str: encode_string, int: encode_int}
+
+class BTDecodeError(Exception):
+    pass
+
+class BTEncodeError(Exception):
+    pass

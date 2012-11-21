@@ -12,7 +12,7 @@ class PeerProtocol(Protocol):
 
     ID_TO_MSG = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
                  3: 'uninterested', 4: 'have', 5: 'bitfield', 6: 'request',
-                 7: 'piece', 8: 'cancel', 9: 'port' }
+                 7: 'piece', 8: 'cancel', 9: 'port'}
 
     def __init__(self):
         self.am_choking = True

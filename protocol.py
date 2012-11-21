@@ -42,7 +42,7 @@ class PeerProtocol(Protocol):
             prefix, msg_id, payload = self.parse_message()
             if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
             getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
-            self.factory.make_requests()
+            self.factory.strategy()
 
     def send(self, mtype, **kwargs):
         """Send a message to our peer, also take care of state that determines
@@ -144,6 +144,7 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = []
+        self.strategy = self.make_requests
 
     def buildProtocol(self, address):
         proto = ClientFactory.buildProtocol(self, address)
@@ -162,3 +163,7 @@ class PeerProtocolFactory(ClientFactory):
                 if proto.peer_bitfield is None or proto.peer_bitfield[index]:
                     proto.send('request', index=index, offset=offset, length=length)
                     proto.requests += 1
+
+    def stop(self):
+        """Do nothing because all pieces have been successfully downloaded"""
+        pass

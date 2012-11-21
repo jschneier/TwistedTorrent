@@ -8,7 +8,6 @@
     * Implement seeding
     * Implement cancel method
     * Add a bitfield parameter that we send
-    * Implement numerous strategies
     * Track download progress
     * Write front end command line layer
     * Write tests to verify

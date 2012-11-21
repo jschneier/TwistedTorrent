@@ -54,7 +54,9 @@ class Torrent(object):
         self.pieces.append(FinalPiece(hashes[-1], final_blocks, final_size))
 
 class ActiveTorrent(Torrent):
-    """Represents a torrent that is in the process of being downloaded."""
+    """Represents a torrent that is in the process of being downloaded.
+    Responsible for figuring out which strategies the factory should be passing
+    down to the protocols and for handling all writing of file data."""
 
     def __init__(self, client, filename):
         super(ActiveTorrent, self).__init__(filename)
@@ -73,7 +75,9 @@ class ActiveTorrent(Torrent):
         if piece.is_full:
             if piece.check_hash():
                 self.write_piece(index)
-                if not self.left: self.finish()
+                if not self.left:
+                    self.factory.strategy = self.factory.stop
+                    self.finish()
             else:
                 raise ValueError('Shit, hash didn\'t match')
 

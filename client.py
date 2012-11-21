@@ -1,14 +1,15 @@
-import os
+import time
 import urllib
 import btencode
 from torrent import ActiveTorrent
+from constants import CLIENT_ID_VER
 
 class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified 
     and then connects to each peer as necessary."""
 
     def __init__(self, *torrents):
-        self.client_id = (str(os.getpid()) + '901asdf0293fasljz23raasd')[:20]
+        self.client_id = (CLIENT_ID_VER + time.time())[:20]
         self.port = 6881
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')

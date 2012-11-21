@@ -1,7 +1,6 @@
 ## BitTorrent Client Implementation
 
 #### Requirements
-    * bencode
     * Twisted
     * bitarray
 
@@ -13,7 +12,6 @@
     * Track download progress
     * Write front end command line layer
     * Write tests to verify
-    * Would be nice - write out bencode (maybe not necessary)
 
 #### Resources
 

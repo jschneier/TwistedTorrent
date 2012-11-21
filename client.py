@@ -5,11 +5,11 @@ from torrent import ActiveTorrent
 from constants import CLIENT_ID_VER
 
 class TorrentClient(object):
-    """A torrent client object, makes the request to the tracker as specified 
+    """A torrent client object, makes the request to the tracker as specified
     and then connects to each peer as necessary."""
 
     def __init__(self, *torrents):
-        self.client_id = (CLIENT_ID_VER + time.time())[:20]
+        self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]
         self.port = 6881
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')
@@ -62,8 +62,7 @@ class TorrentClient(object):
             'uploaded': torrent.uploaded,
             'downloaded': torrent.downloaded,
             'left': torrent.left,
-            'event': etype
-        }
+            'event': etype }
 
         base = torrent.announce_url
         url = base + '?' + urllib.urlencode(announce_query)

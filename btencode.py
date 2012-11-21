@@ -6,7 +6,7 @@ def decode_string(s, start):
 
 def decode_int(s, start):
     end = s.find('e', start)
-    if s[start+1] == '0' and end != start+2:
+    if s[start+1] == '0' and end != start + 2:
         raise ValueError
     return int(s[start + 1:end]), end + 1
 

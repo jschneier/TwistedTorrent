@@ -3,6 +3,8 @@ import bitarray
 from constants import BSIZE
 
 class Piece(object):
+    """Provide an abstraction over a BitTorrent piece to hide the handling of
+    blocks and storing of data."""
 
     def __init__(self, hash, blocks):
         self.hash = hash
@@ -37,6 +39,8 @@ class Piece(object):
         return BSIZE
 
 class FinalPiece(Piece):
+    """The final block of the final piece of a torrent is a different size and
+    thus requires special hoop jumping."""
 
     def __init__(self, hash, blocks, fsize):
         super(FinalPiece, self).__init__(hash, blocks)

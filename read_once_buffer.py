@@ -1,7 +1,7 @@
 class ReadOnceBuffer(bytearray):
     """Class that automatically deletes the piece of a bytearray that you
     slice. Peek can be used to avoid deletion."""
-    
+
     def __init__(self, data=None):
         self.bytes = bytearray() if data is None else bytearray(data)
 

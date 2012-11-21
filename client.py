@@ -1,6 +1,6 @@
 import os
 import urllib
-import bencode
+import btencode
 from torrent import ActiveTorrent
 
 class TorrentClient(object):
@@ -34,7 +34,7 @@ class TorrentClient(object):
         if not response:
             raise AnnounceError('No response from tracker for url %s' % url)
 
-        tracker_dict = bencode.bdecode(response)
+        tracker_dict = btencode.btdecode(response)
         if 'failure reason' in tracker_dict:
             raise AnnounceError('''failure reason key in tracker response\
                                     %s:''' % tracker_dict['failure reason'])

@@ -1,14 +1,12 @@
-import os
 import sys
-import math
-import bencode
+import tempfile
+import btencode
 from hashlib import sha1
-from random import randint
 from constants import BSIZE
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
 
-DEBUG = True
+DEBUG = False
 
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
@@ -18,11 +16,19 @@ class Torrent(object):
         self.parse_metainfo()
 
     def parse_metainfo(self):
-        torrent_dict = bencode.bdecode(open(self.filename).read())
+        try:
+            with open(self.filename) as tor:
+                torrent_dict = btencode.btdecode(tor.read())
+        except btencode.BTDecodeError:
+            print 'BTDecodeError handling %s' % self.filename
+            sys.exit(1)
+        except IOError:
+            print 'IOError handling %s' % self.filename
+            sys.exit(1)
 
         self.announce_url = torrent_dict['announce']
         info = torrent_dict['info']
-        self.info_hash = sha1(bencode.bencode(info)).digest()
+        self.info_hash = sha1(btencode.btencode(info)).digest()
         self.piece_length = info['piece length']
 
         if not 'files' in info:
@@ -41,7 +47,7 @@ class Torrent(object):
 
         #calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
-        final_blocks = int(math.ceil(float(leftover) / BSIZE))
+        final_blocks = leftover / BSIZE + 1
         final_size = leftover % BSIZE
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
@@ -56,8 +62,7 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.out_name = 'temp_' + str(randint(0, 100000))
-        self.outfile = open(self.out_name, 'w')
+        self.outfile = tempfile.TemporaryFile()
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
@@ -86,7 +91,6 @@ class ActiveTorrent(Torrent):
         return index, offset_index
 
     def finish(self):
-        self.outfile.close()
         self.write_files()
         self.client.delete_torrent(self)
 
@@ -95,11 +99,11 @@ class ActiveTorrent(Torrent):
         reactor.connectTCP(host, port, self.factory)
 
     def write_files(self):
-        with open(self.out_name) as out:
-            for fname, size in self.names_length:
-                with open(fname, 'w') as cur:
-                    cur.write(out.read(size))
-        os.remove(self.out_name)
+        self.outfile.seek(0)
+        for fname, size in self.names_length:
+            with open(fname, 'w') as cur:
+                cur.write(self.outfile.read(size))
+        self.outfile.close() #closing temp file deletes it
 
     @property
     def left(self):

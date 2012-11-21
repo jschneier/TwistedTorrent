@@ -12,7 +12,8 @@ class Message(str):
     def handshake(**kwargs):
         length = chr(len(PSTR))
         resvd = chr(0) * 8
-        return length + PSTR + resvd + kwargs['info_hash'] + kwargs['peer_id']
+        return ''.join([length, PSTR, resvd,
+                        kwargs['info_hash'], kwargs['peer_id']])
 
     @staticmethod
     def keep_alive(**kwargs):

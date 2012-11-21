@@ -5,7 +5,7 @@ from read_once_buffer import ReadOnceBuffer
 from constants import PSTR, HANDSHAKE_LEN, BSIZE
 from twisted.internet.protocol import Protocol, ClientFactory
 
-DEBUG = True
+DEBUG = False
 
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""

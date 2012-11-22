@@ -5,6 +5,9 @@
     * bitarray
 
 #### TODO
+    * UDP tracker - DHT
+    * Announce list
+    * Tracker indexing
     * Implement seeding
     * Implement cancel method
     * Calculate strategy methods

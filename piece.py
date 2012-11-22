@@ -12,7 +12,6 @@ class Piece(object):
         self.block_data = {}
         self.next_piece = 0
 
-    @property
     def is_full(self):
         return self.next_piece == len(self.blocks)
 
@@ -27,6 +26,11 @@ class Piece(object):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
         return self.blocks[index] == True
+
+    def clear(self):
+        self.blocks = bitarray.bitarray(len(self.blocks))
+        self.block_data = {}
+        self.next_piece = 0
 
     @property
     def full_data(self):

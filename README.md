@@ -7,6 +7,7 @@
 #### TODO
     * Implement seeding
     * Implement cancel method
+    * Calculate strategy methods
     * Add a bitfield parameter that we send
     * Track download progress
     * Write front end command line layer

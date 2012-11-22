@@ -10,7 +10,7 @@ DEBUG = False
 
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
- 
+
     def __init__(self, filename):
         self.filename = filename
         self.parse_metainfo()
@@ -39,13 +39,13 @@ class Torrent(object):
             self.names_length = [(f['path'][0], f['length'])
                                     for f in info['files']]
 
-        #break string pieces up into a list of those pieces
+        # break string pieces up into a list of those pieces
         pieces_string = info['pieces']
         hashes = [pieces_string[i: i+20] for i in xrange(0, len(pieces_string), 20)]
         num_pieces = len(hashes)
         blocks = self.piece_length / BSIZE
 
-        #calculate size of last piece
+        # calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
         final_blocks = leftover / BSIZE + 1
         final_size = leftover % BSIZE
@@ -69,17 +69,18 @@ class ActiveTorrent(Torrent):
 
     def add_block(self, index, offset, block):
         piece = self.pieces[index]
-        if piece.has_block(offset): return #same block coming in again
+        if piece.has_block(offset): return  # same block coming in again
 
         piece.add(offset, block)
-        if piece.is_full:
+        if piece.is_full():
             if piece.check_hash():
                 self.write_piece(index)
                 if not self.left:
                     self.factory.strategy = self.factory.stop
                     self.finish()
             else:
-                raise ValueError('Shit, hash didn\'t match')
+                # hash didn't match, reset the piece
+                piece.clear()
 
     def write_piece(self, index):
         data = self.pieces[index].full_data
@@ -107,7 +108,7 @@ class ActiveTorrent(Torrent):
         for fname, size in self.names_length:
             with open(fname, 'w') as cur:
                 cur.write(self.outfile.read(size))
-        self.outfile.close() #closing temp file deletes it
+        self.outfile.close()  # closing temp file deletes it
 
     @property
     def left(self):

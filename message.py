@@ -55,7 +55,7 @@ class Message(str):
     def piece(**kwargs):
         block = kwargs['block'].tobytes()
         length = len(block)
-        header = struct.pack('!IBII', length + 9,
+        header = struct.pack('!IBII', length + 9, 7,
                                 kwargs['index'], kwargs['offset'])
         return header + block
 
@@ -66,4 +66,4 @@ class Message(str):
 
     @staticmethod
     def port(**kwargs):
-        return struct.pack('!IBH', 3, 9, kwargs['listen-port'])
+        return struct.pack('!IBH', 3, 9, kwargs['listen_port'])

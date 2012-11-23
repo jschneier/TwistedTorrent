@@ -1,5 +1,6 @@
 import unittest
 from message import Message
+from constants import BSIZE
 from bitarray import bitarray
 
 class MessageTest(unittest.TestCase):
@@ -27,6 +28,24 @@ class MessageTest(unittest.TestCase):
         bit = bitarray('01011000')
         self.assertEquals(Message('bitfield', bitfield=bit),
                                     '\x00\x00\x00\x02\x05\x58')
+
+    def test_request(self):
+        self.assertEquals(Message('request', index=4,
+                                    offset=2 * BSIZE, length=BSIZE),
+                                    '\x00\x00\x00\x0d\x06\x00\x00\x00\x04\x00\x00\x80\x00\x00\x00\x40\x00')
+
+    def test_piece(self):
+        self.assertEquals(Message('piece', index=4,
+                                    offset=2 * BSIZE, block=bitarray('00000001')),
+                                   '\x00\x00\x00\x0a\x07\x00\x00\x00\x04\x00\x00\x80\x00\x01')
+
+    def test_cancel(self):
+        self.assertEquals(Message('cancel', index=4,
+                                    offset=2 * BSIZE, length=BSIZE),
+                                    '\x00\x00\x00\x0d\x08\x00\x00\x00\x04\x00\x00\x80\x00\x00\x00\x40\x00')
+    def test_port(self):
+        self.assertEquals(Message('port', listen_port=8000),
+                                    '\x00\x00\x00\x03\x09\x1f\x40')
 
 if __name__ == '__main__':
     unittest.main()

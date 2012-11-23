@@ -3,6 +3,7 @@ import urllib
 import btencode
 from torrent import ActiveTorrent
 from constants import CLIENT_ID_VER
+from twisted.internet.task import LoopingCall
 
 class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified
@@ -18,6 +19,8 @@ class TorrentClient(object):
     def start(self):
         for torrent in self.torrents:
             self._download(torrent)
+        loop_call = LoopingCall(self.report_stats)
+        loop_call.start(.5)
         from twisted.internet import reactor
         reactor.run()
 
@@ -69,8 +72,15 @@ class TorrentClient(object):
 
         return url
 
+    def report_stats(self):
+        """Fetch and display client's torrent's stats, in a LoopingCall."""
+
+        for torrent in self.torrents:
+            #TODO
+            pass
+
     def delete_torrent(self, torrent):
-        '''Remove a torrent that has finished downloading.'''
+        """Remove a torrent that has finished downloading."""
 
         self.torrents.remove(torrent)
         if not self.torrents:

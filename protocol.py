@@ -2,7 +2,7 @@ import struct
 from message import Message
 from bitarray import bitarray
 from read_once_buffer import ReadOnceBuffer
-from constants import PSTR, HANDSHAKE_LEN, BSIZE
+from constants import PSTR, HANDSHAKE_LEN, BSIZE, MAX_SIZE
 from twisted.internet.protocol import Protocol, ClientFactory
 
 DEBUG = False
@@ -94,7 +94,12 @@ class PeerProtocol(Protocol):
         self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
 
     def request(self, payload):
-        pass
+        index, offset, size = struct.unpack('!III', payload)
+        if size > MAX_SIZE:
+            self.transport.loseConnection()
+        if self.factory.bitfield[index] == True:
+            block = self.factory.fetch(index, offset, size)
+            self.send('piece', index=index, offset=offset, block=block)
 
     def piece(self, payload):
         self.requests -= 1
@@ -155,6 +160,9 @@ class PeerProtocolFactory(ClientFactory):
         self.protos.append(proto)
         return proto
 
+    def fetch(self, index, offset, size):
+        self.torrent.fetch_block(index, offset, size)
+
     def add_block(self, index, offset, block):
         self.torrent.add_block(index, offset, block)
 
@@ -166,7 +174,7 @@ class PeerProtocolFactory(ClientFactory):
     def make_requests(self):
         for proto in self.protos:
             if proto.requests < 5 and proto.handshaked:
-                index, offset_index = self.torrent.get_block()
+                index, offset_index = self.torrent.next_block()
                 offset = offset_index * BSIZE
                 length = self.torrent.pieces[index].get_size(offset_index)
                 if proto.peer_bitfield is None or proto.peer_bitfield[index]:

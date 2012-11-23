@@ -65,7 +65,7 @@ class ActiveTorrent(Torrent):
         self.uploaded = 0
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
-        self.outfile = tempfile.TemporaryFile()
+        self.tempfile = tempfile.TemporaryFile()
         self.to_dl = set(range(len(self.pieces)))
 
     def add_block(self, index, offset, block):
@@ -86,16 +86,21 @@ class ActiveTorrent(Torrent):
 
     def write_piece(self, index):
         data = self.pieces[index].full_data
-        self.outfile.seek(self.piece_length * index)
-        self.outfile.write(data)
+        self.tempfile.seek(self.piece_length * index)
+        self.tempfile.write(data)
         self.downloaded += len(data)
         self.to_dl.remove(index)
 
-    def get_block(self):
+    def next_block(self):
         if not self.to_dl: return
         index = min(self.to_dl)
         offset_index = self.pieces[index].next_piece
         return index, offset_index
+
+    def fetch_block(self, index, offset, size):
+        self.tempfile.seek(self.piece_length * index + offset)
+        self.uploaded += size
+        return self.tempfile.read(size)
 
     def finish(self):
         self.write_files()
@@ -106,11 +111,11 @@ class ActiveTorrent(Torrent):
         reactor.connectTCP(host, port, self.factory)
 
     def write_files(self):
-        self.outfile.seek(0)
+        self.tempfile.seek(0)
         for fname, size in self.names_length:
             with open(fname, 'w') as cur:
-                cur.write(self.outfile.read(size))
-        self.outfile.close()  # closing temp file deletes it
+                cur.write(self.tempfile.read(size))
+        self.tempfile.close()  # closing temp file deletes it
 
     @property
     def left(self):

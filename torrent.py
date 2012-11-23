@@ -1,4 +1,5 @@
 import sys
+import math
 import tempfile
 import btencode
 from hashlib import sha1
@@ -47,7 +48,7 @@ class Torrent(object):
 
         # calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
-        final_blocks = int(round(float(leftover) / BSIZE))
+        final_blocks = int(math.ceil(float(leftover) / BSIZE))
         final_size = leftover % BSIZE
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]

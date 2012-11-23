@@ -146,7 +146,7 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = []
-        self.bitfield = bitarray(len(self.torrent.pieces))
+        self.bitfield = bitarray(len(self.torrent.pieces), endian='big')
         self.bitfield.setall(False)
         self.strategy = self.make_requests
 

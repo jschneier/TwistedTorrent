@@ -1,4 +1,4 @@
-## BitTorrent Client Implementation
+## TwistedBits - BitTorrent client implemenation
 
 #### Requirements
     * Twisted

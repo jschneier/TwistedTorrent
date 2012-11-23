@@ -68,7 +68,7 @@ def btencode(stuff):
     try:
         ret = encoders[type(stuff)](stuff)
     except KeyError:
-        raise BTDecodeError('Not valid type for bencoding')
+        raise BTEncodeError('Not valid type for bencoding')
     return ret
 
 encoders = {dict: encode_dict, list: encode_list,

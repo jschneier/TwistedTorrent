@@ -1,4 +1,3 @@
-import math
 import struct
 from constants import PSTR
 

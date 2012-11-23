@@ -9,11 +9,12 @@
     * Announce list
     * Tracker indexing
     * Implement seeding
-    * Implement cancel method
+    * Implement cancel method - algorithms
+    * Integrate with Trial
+    * Actually care about peer\_interested etc
     * Calculate strategy methods
     * Track download progress
     * Write front end command line layer
-    * Write tests to verify
 
 #### Resources
 

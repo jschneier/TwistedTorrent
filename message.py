@@ -1,3 +1,4 @@
+import math
 import struct
 from constants import PSTR
 
@@ -42,8 +43,8 @@ class Message(str):
     @staticmethod
     def bitfield(**kwargs):
         length = len(kwargs['bitfield'])
-        arg = Message._make_struct_arg('!IB', length)
-        return struct.pack(arg, length + 1, 5, kwargs['bitfield'])
+        header = struct.pack('!IB', length + 1, 5)
+        return header + kwargs['bitfield'].tobytes()
 
     @staticmethod
     def request(**kwargs):
@@ -53,9 +54,9 @@ class Message(str):
     @staticmethod
     def piece(**kwargs):
         length = len(kwargs['block'])
-        arg = Message._make_struct_arg('!IBII', length)
-        return struct.pack(arg, length + 9, 7, kwargs['index'],
-                                kwargs['offset'], kwargs['block'])
+        header = struct.pack('!IBII', length + 9,
+                                kwargs['index'], kwargs['offset'])
+        return header + kwargs['block']
 
     @staticmethod
     def cancel(**kwargs):
@@ -65,12 +66,3 @@ class Message(str):
     @staticmethod
     def port(**kwargs):
         return struct.pack('!IBH', 3, 9, kwargs['listen-port'])
-
-    @staticmethod
-    def _make_struct_arg(base, length):
-        """Variable length messages need struct args dynamically created."""
-        struct_string = base + 'I' * length / 4
-        remainder = length % 4
-        if remainder:
-            print 'Shit, non-packed bytes wanted for message'
-        return struct_string

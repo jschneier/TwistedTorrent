@@ -27,6 +27,8 @@ class PeerProtocol(Protocol):
     def connectionMade(self):
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
                                 peer_id=self.factory.client.client_id)
+        if any(self.factory.bitfield):
+            self.send('bitfield', bitfield=self.factory.bitfield)
 
     def dataReceived(self, data):
         self.buf += data
@@ -98,7 +100,7 @@ class PeerProtocol(Protocol):
         self.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
         block = payload[8:]
-        self.factory.add(index, offset, block)
+        self.factory.add_block(index, offset, block)
 
     def cancel(self, payload):
         pass
@@ -144,6 +146,8 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = []
+        self.bitfield = bitarray(len(self.torrent.pieces))
+        self.bitfield.setall(False)
         self.strategy = self.make_requests
 
     def buildProtocol(self, address):
@@ -151,8 +155,13 @@ class PeerProtocolFactory(ClientFactory):
         self.protos.append(proto)
         return proto
 
-    def add(self, index, offset, block):
+    def add_block(self, index, offset, block):
         self.torrent.add_block(index, offset, block)
+
+    def update_successful_piece(self, index):
+        self.bitfield[index] = True
+        for proto in self.protos:
+            proto.send('have', piece_index=index)
 
     def make_requests(self):
         for proto in self.protos:
@@ -165,5 +174,5 @@ class PeerProtocolFactory(ClientFactory):
                     proto.requests += 1
 
     def stop(self):
-        """Do nothing because all pieces have been successfully downloaded"""
+        """Do nothing because all pieces have been successfully downloaded."""
         pass

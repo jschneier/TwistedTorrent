@@ -8,7 +8,8 @@ class Piece(object):
 
     def __init__(self, hash, blocks):
         self.hash = hash
-        self.blocks = bitarray.bitarray(blocks).setall(False)
+        self.blocks = bitarray.bitarray(blocks)
+        self.blocks.setall(False)
         self.block_data = {}
         self.next_piece = 0
 
@@ -28,7 +29,8 @@ class Piece(object):
         return self.blocks[index] == True
 
     def clear(self):
-        self.blocks = bitarray.bitarray(len(self.blocks)).setall(False)
+        self.blocks = bitarray.bitarray(len(self.blocks))
+        self.blocks.setall(False)
         self.block_data = {}
         self.next_piece = 0
 

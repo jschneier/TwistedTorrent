@@ -47,7 +47,7 @@ class Torrent(object):
 
         # calculate size of last piece
         leftover = self.length - ((num_pieces - 1) * self.piece_length)
-        final_blocks = leftover / BSIZE + 1
+        final_blocks = int(round(float(leftover) / BSIZE))
         final_size = leftover % BSIZE
 
         self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
@@ -75,6 +75,7 @@ class ActiveTorrent(Torrent):
         if piece.is_full():
             if piece.check_hash():
                 self.write_piece(index)
+                self.factory.update_successful_piece(index)
                 if not self.left:
                     self.factory.strategy = self.factory.stop
                     self.finish()

@@ -42,9 +42,10 @@ class Message(str):
 
     @staticmethod
     def bitfield(**kwargs):
-        length = len(kwargs['bitfield'])
+        bitfield = kwargs['bitfield'].tobytes()
+        length = len(bitfield)
         header = struct.pack('!IB', length + 1, 5)
-        return header + kwargs['bitfield'].tobytes()
+        return header + bitfield
 
     @staticmethod
     def request(**kwargs):
@@ -53,10 +54,11 @@ class Message(str):
 
     @staticmethod
     def piece(**kwargs):
-        length = len(kwargs['block'])
+        block = kwargs['block'].tobytes()
+        length = len(block)
         header = struct.pack('!IBII', length + 9,
                                 kwargs['index'], kwargs['offset'])
-        return header + kwargs['block']
+        return header + block
 
     @staticmethod
     def cancel(**kwargs):

@@ -21,7 +21,7 @@ class MessageTest(unittest.TestCase):
         self.assertEquals(Message('not_interested'), '\x00\x00\x00\x01\x03')
 
     def test_have(self):
-        self.assertEquals(Message('have', piece_index=19),
+        self.assertEquals(Message('have', index=19),
                                     '\x00\x00\x00\x05\x04\x00\x00\x00\x13')
 
     def test_bitfield(self):

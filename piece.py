@@ -26,7 +26,8 @@ class Piece(object):
     def has_block(self, offset):
         #offset is in bytes, need to get to index
         index = offset / BSIZE
-        return self.blocks[index] == True
+        #bitarray indexing returns True or False
+        return self.blocks[index]
 
     def clear(self):
         self.blocks.setall(False)
@@ -35,7 +36,8 @@ class Piece(object):
 
     @property
     def full_data(self):
-        return ''.join(str(self.block_data[i]) for i in xrange(len(self.blocks)))
+        return ''.join(str(self.block_data[i])
+                            for i in xrange(len(self.blocks)))
 
     def check_hash(self):
         return self.hash == hashlib.sha1(self.full_data).digest()

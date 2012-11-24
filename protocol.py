@@ -97,7 +97,7 @@ class PeerProtocol(Protocol):
         index, offset, size = struct.unpack('!III', payload)
         if size > MAX_SIZE:
             self.transport.loseConnection()
-        if self.factory.bitfield[index] == True:
+        if self.factory.bitfield[index]:
             block = self.factory.fetch(index, offset, size)
             self.send('piece', index=index, offset=offset, block=block)
 
@@ -169,7 +169,7 @@ class PeerProtocolFactory(ClientFactory):
     def update_successful_piece(self, index):
         self.bitfield[index] = True
         for proto in self.protos:
-            proto.send('have', piece_index=index)
+            proto.send('have', index=index)
 
     def make_requests(self):
         for proto in self.protos:

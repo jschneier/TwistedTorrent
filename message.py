@@ -37,7 +37,7 @@ class Message(str):
 
     @staticmethod
     def have(**kwargs):
-        return struct.pack('!IBI', 5, 4, kwargs['piece_index'])
+        return struct.pack('!IBI', 5, 4, kwargs['index'])
 
     @staticmethod
     def bitfield(**kwargs):

@@ -3,6 +3,7 @@ import math
 import tempfile
 import btencode
 from hashlib import sha1
+from random import sample
 from constants import BSIZE
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
@@ -29,7 +30,11 @@ class Torrent(object):
 
         self.announce_url = torrent_dict['announce']
         info = torrent_dict['info']
-        self.info_hash = sha1(btencode.btencode(info)).digest()
+        try:
+            self.info_hash = sha1(btencode.btencode(info)).digest()
+        except btencode.BTEncodeError as e:
+            print 'BTEncodeError handling %s: %s' % (self.filename, e.args[0])
+            sys.exit(1)
         self.piece_length = info['piece length']
 
         if not 'files' in info:
@@ -93,7 +98,7 @@ class ActiveTorrent(Torrent):
 
     def next_block(self):
         if not self.to_dl: return
-        index = min(self.to_dl)
+        index, = sample(self.to_dl, 1)
         offset_index = self.pieces[index].next_piece
         return index, offset_index
 

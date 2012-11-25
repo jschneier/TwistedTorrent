@@ -12,7 +12,9 @@ class PeerProtocol(Protocol):
 
     ID_TO_MSG = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
                  3: 'uninterested', 4: 'have', 5: 'bitfield', 6: 'request',
-                 7: 'piece', 8: 'cancel', 9: 'port'}
+                 7: 'piece', 8: 'cancel', 9: 'port', 13: 'suggest_piece',
+                 14: 'have_all', 15: 'have_none', 16: 'reject_request',
+                 17: 'allowed_fast'}
 
     def __init__(self):
         self.am_choking = True
@@ -99,7 +101,7 @@ class PeerProtocol(Protocol):
     def piece(self, payload):
         index, offset = struct.unpack_from('!II', str(payload))
         block = payload[8:]
-        self.requests.remove(index, offset, len(block))
+        self.requests.remove((index, offset, len(block)))
         self.factory.add_block(index, offset, block)
 
     def cancel(self, payload):
@@ -108,6 +110,24 @@ class PeerProtocol(Protocol):
     def port(self, payload):
         """Not supported"""
         pass
+
+    def suggest_piece(self, payload):
+        index = struct.unpack('!I', payload)
+        if not self.factory.bitfield[index]:
+            pass #TODO
+
+    def allowed_fast(self, payload):
+        pass #TODO
+
+    def have_all(self, *args):
+        self.peer_bitfield = bitarray(self.torrent_size * '1', endian='big')
+
+    def have_none(self, *args):
+        self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
+
+    def reject_request(self, payload):
+        index, offset, length = struct.unpack('!III', str(payload))
+        self.requests.remove((index, offset, length))
 
     def parse_message(self):
         prefix, = struct.unpack('!I', str(self.buf[:4]))

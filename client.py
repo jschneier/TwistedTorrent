@@ -3,6 +3,7 @@ import urllib
 import btencode
 from torrent import ActiveTorrent
 from constants import CLIENT_ID_VER
+from twisted.web.client import getPage
 
 class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified
@@ -15,41 +16,50 @@ class TorrentClient(object):
             raise ValueError('Must supply at least 1 torrent file')
         self.torrents = {ActiveTorrent(self, torrent) for torrent in torrents}
 
+        from twisted.internet import reactor
+        reactor.callWhenRunning(self.start)
+        reactor.run()
+
     def start(self):
         for torrent in self.torrents:
             self._download(torrent)
-        from twisted.internet import reactor
-        reactor.run()
 
     def _download(self, torrent):
-        host_ports = self.announce(torrent, 'started')
-        for host_port in host_ports:
-            torrent.connect_to_peer(host_port)
+        d = self.announce(torrent, 'started')
+        def dl(host_ports):
+            for host_port in host_ports:
+                torrent.connect_to_peer(host_port)
+        d.addCallback(dl)
 
     def announce(self, torrent, etype):
         """Encode and send the request to the tracker and then parse the
         response to get the host and ports of the specified peers."""
 
         url = self._build_url(torrent, etype)
-        response = urllib.urlopen(url).read()
-        if not response:
-            raise AnnounceError('No response from tracker for url %s' % url)
+        d = getPage(url)
 
-        tracker_dict = btencode.btdecode(response)
-        if 'failure reason' in tracker_dict:
-            raise AnnounceError('''failure reason key in tracker response\
-                                    %s:''' % tracker_dict['failure reason'])
+        def parse_response(response):
+            if not response:
+                raise AnnounceError('No response from tracker for url %s' % url)
 
-        peers_raw = tracker_dict['peers']
-        if isinstance(peers_raw, dict):
-            raise AnnounceError('peers as dictionary model not implemented')
+            tracker_dict = btencode.btdecode(response)
+            if 'failure reason' in tracker_dict:
+                raise AnnounceError('''failure reason key in tracker response\
+                                        %s:''' % tracker_dict['failure reason'])
 
-        #break into 6 byte chunks - 4 for ip 2 for port
-        peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-        peers = (map(ord, peer) for peer in peers_bytes)
-        host_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
+            peers_raw = tracker_dict['peers']
+            if isinstance(peers_raw, dict):
+                raise AnnounceError('peers as dictionary model not implemented')
 
-        return host_ports
+            #break into 6 byte chunks - 4 for ip 2 for port
+            peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+            peers = (map(ord, peer) for peer in peers_bytes)
+            host_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
+
+            return host_ports
+
+        d.addCallback(parse_response)
+        return d
 
     def _build_url(self, torrent, etype):
         """Create the url that is sent to the tracker. The etype that is

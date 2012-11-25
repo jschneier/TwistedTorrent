@@ -27,6 +27,7 @@ class PeerProtocol(Protocol):
     def connectionMade(self):
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
                                 peer_id=self.factory.client.client_id)
+        self.factory.protos.add(self)
         if any(self.factory.bitfield):
             self.send('bitfield', bitfield=self.factory.bitfield)
 
@@ -150,15 +151,10 @@ class PeerProtocolFactory(ClientFactory):
     def __init__(self, client, torrent):
         self.client = client
         self.torrent = torrent
-        self.protos = []
+        self.protos = set()
         self.bitfield = bitarray(len(self.torrent.pieces), endian='big')
         self.bitfield.setall(False)
         self.strategy = self.make_requests
-
-    def buildProtocol(self, address):
-        proto = ClientFactory.buildProtocol(self, address)
-        self.protos.append(proto)
-        return proto
 
     def fetch(self, index, offset, size):
         self.torrent.fetch_block(index, offset, size)

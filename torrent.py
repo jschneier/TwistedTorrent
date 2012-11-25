@@ -8,8 +8,6 @@ from constants import BSIZE
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory
 
-DEBUG = False
-
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
 
@@ -48,15 +46,15 @@ class Torrent(object):
         # break string pieces up into a list of those pieces
         pieces_string = info['pieces']
         hashes = [pieces_string[i: i+20] for i in xrange(0, len(pieces_string), 20)]
-        num_pieces = len(hashes)
+        self.n_pieces = len(hashes)
         blocks = self.piece_length / BSIZE
 
         # calculate size of last piece
-        leftover = self.length - ((num_pieces - 1) * self.piece_length)
+        leftover = self.length - ((self.n_pieces - 1) * self.piece_length)
         final_blocks = int(math.ceil(float(leftover) / BSIZE))
         final_size = leftover % BSIZE
 
-        self.pieces = [Piece(hashes[i], blocks) for i in xrange(num_pieces-1)]
+        self.pieces = [Piece(hashes[i], blocks) for i in xrange(self.n_pieces-1)]
         self.pieces.append(FinalPiece(hashes[-1], final_blocks, final_size))
 
 class ActiveTorrent(Torrent):
@@ -71,7 +69,7 @@ class ActiveTorrent(Torrent):
         self.downloaded = 0
         self.factory = PeerProtocolFactory(client, self)
         self.tempfile = tempfile.TemporaryFile()
-        self.to_dl = set(range(len(self.pieces)))
+        self.to_dl = set(range(self.n_pieces))
 
     def add_block(self, index, offset, block):
         piece = self.pieces[index]

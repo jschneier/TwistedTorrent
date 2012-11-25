@@ -8,13 +8,13 @@ from twisted.internet.protocol import Protocol, ClientFactory
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""
 
-    ID_TO_MSG = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
+    id_to_msg = {None: 'keep_alive', 0: 'choke', 1: 'unchoke', 2: 'interested',
                  3: 'uninterested', 4: 'have', 5: 'bitfield', 6: 'request',
                  7: 'piece', 8: 'cancel', 9: 'port', 13: 'suggest_piece',
                  14: 'have_all', 15: 'have_none', 16: 'reject_request',
                  17: 'allowed_fast'}
 
-    EXTENSION_IDS = frozenset((13, 14, 15, 16, 17))
+    extension_ids = frozenset((13, 14, 15, 16, 17))
 
     def __init__(self):
         self.am_choking = True
@@ -51,11 +51,11 @@ class PeerProtocol(Protocol):
 
         while self.has_msg():
             prefix, msg_id, payload = self.parse_message()
-            if msg_id in PeerProtocol.EXTENSION_IDS and not self.fast_extension:
+            if msg_id in self.extension_ids and not self.fast_extension:
                 self.transport.loseConnection()
                 break
 
-            getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
+            getattr(self, self.id_to_msg[msg_id])(payload)
             self.factory.strategy()
 
     def send(self, mtype, **kwargs):
@@ -123,10 +123,10 @@ class PeerProtocol(Protocol):
     def suggest_piece(self, payload):
         index = struct.unpack('!I', payload)
         if not self.factory.bitfield[index]:
-            pass #TODO
+            pass  # TODO
 
     def allowed_fast(self, payload):
-        pass #TODO
+        pass  # TODO
 
     def have_all(self, *args):
         self.peer_bitfield = bitarray(self.torrent_size * '1', endian='big')
@@ -172,7 +172,7 @@ class PeerProtocol(Protocol):
 
     @property
     def torrent_size(self):
-        return len(self.factory.torrent.pieces)
+        return self.factory.torrent.n_pieces
 
     @property
     def bufsize(self):
@@ -188,7 +188,7 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = set()
-        self.bitfield = bitarray(len(self.torrent.pieces) * '0', endian='big')
+        self.bitfield = bitarray(self.torrent.n_pieces * '0', endian='big')
         self.strategy = self.make_requests
 
     def fetch(self, index, offset, size):

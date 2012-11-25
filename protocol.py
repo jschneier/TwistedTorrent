@@ -22,7 +22,7 @@ class PeerProtocol(Protocol):
         self.handshaked = False
         self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
         self.buf = ReadOnceBuffer()
-        self.requests = 0
+        self.requests = set()
 
     def connectionMade(self):
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
@@ -97,9 +97,9 @@ class PeerProtocol(Protocol):
             self.send('piece', index=index, offset=offset, block=block)
 
     def piece(self, payload):
-        self.requests -= 1
         index, offset = struct.unpack_from('!II', str(payload))
         block = payload[8:]
+        self.requests.remove(index, offset, len(block))
         self.factory.add_block(index, offset, block)
 
     def cancel(self, payload):
@@ -170,13 +170,14 @@ class PeerProtocolFactory(ClientFactory):
 
     def make_requests(self):
         for proto in self.protos:
-            if proto.requests < 5 and proto.handshaked:
+            if len(proto.requests) < 5 and proto.handshaked:
                 index, offset_index = self.torrent.next_block()
                 offset = offset_index * BSIZE
                 length = self.torrent.pieces[index].get_size(offset_index)
-                if proto.peer_bitfield is None or proto.peer_bitfield[index]:
+                params = (index, offset, length)
+                if proto.peer_bitfield[index] and params not in proto.requests:
                     proto.send('request', index=index, offset=offset, length=length)
-                    proto.requests += 1
+                    proto.requests.add(params)
 
     def stop(self):
         """Do nothing because all pieces have been successfully downloaded."""

@@ -67,3 +67,25 @@ class Message(str):
     @staticmethod
     def port(**kwargs):
         return struct.pack('!IBH', 3, 9, kwargs['listen_port'])
+
+    # from here on down are fast peers extension
+    @staticmethod
+    def suggest_piece(**kwargs):
+        return struct.pack('!IBI', 5, 13, kwargs['index'])
+
+    @staticmethod
+    def have_all(**kwargs):
+        return struct.pack('!IB', 1, 14)
+
+    @staticmethod
+    def have_none(**kwargs):
+        return struct.pack('!IB', 1, 15)
+ 
+    @staticmethod
+    def reject_request(**kwargs):
+        return struct.pack('!IBIII', 13, 16, kwargs['index'],
+                                kwargs['offset'], kwargs['length'])
+
+    @staticmethod
+    def allowed_fast(**kwargs):
+        return struct.pack('!IBI', 5, 17, kwargs['index'])

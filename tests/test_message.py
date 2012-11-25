@@ -47,5 +47,24 @@ class MessageTest(unittest.TestCase):
         self.assertEquals(Message('port', listen_port=8000),
                                     '\x00\x00\x00\x03\x09\x1f\x40')
 
+    def test_reject_request(self):
+        self.assertEquals(Message('reject_request', index=4,
+                                    offset=2 * BSIZE, length=BSIZE),
+                                    '\x00\x00\x00\x0d\x10\x00\x00\x00\x04\x00\x00\x80\x00\x00\x00\x40\x00')
+
+    def test_suggest_piece(self):
+        self.assertEquals(Message('suggest_piece', index=4),
+                                    '\x00\x00\x00\x05\x0d\x00\x00\x00\x04')
+
+    def test_have_all(self):
+        self.assertEquals(Message('have_all'), '\x00\x00\x00\x01\x0e')
+
+    def test_have_none(self):
+        self.assertEquals(Message('have_none'), '\x00\x00\x00\x01\x0f')
+
+    def test_allowed_fast(self):
+        self.assertEquals(Message('allowed_fast', index=89),
+                                    '\x00\x00\x00\x05\x11\x00\x00\x00\x59')
+
 if __name__ == '__main__':
     unittest.main()

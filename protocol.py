@@ -5,8 +5,6 @@ from read_once_buffer import ReadOnceBuffer
 from constants import PSTR, HANDSHAKE_LEN, BSIZE, MAX_SIZE
 from twisted.internet.protocol import Protocol, ClientFactory
 
-DEBUG = False
-
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""
 
@@ -16,12 +14,15 @@ class PeerProtocol(Protocol):
                  14: 'have_all', 15: 'have_none', 16: 'reject_request',
                  17: 'allowed_fast'}
 
+    EXTENSION_IDS = frozenset((13, 14, 15, 16, 17))
+
     def __init__(self):
         self.am_choking = True
         self.am_interested = False
         self.peer_choking = True
         self.peer_interested = False
         self.handshaked = False
+        self.fast_extension = False
         self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
         self.buf = ReadOnceBuffer()
         self.requests = set()
@@ -45,7 +46,10 @@ class PeerProtocol(Protocol):
 
         while self.has_msg():
             prefix, msg_id, payload = self.parse_message()
-            if DEBUG: print 'About to do: %s' % PeerProtocol.ID_TO_MSG[msg_id]
+            if msg_id in PeerProtocol.EXTENSION_IDS and not self.fast_extension:
+                self.transport.loseConnection()
+                break
+
             getattr(self, PeerProtocol.ID_TO_MSG[msg_id])(payload)
             self.factory.strategy()
 
@@ -144,7 +148,8 @@ class PeerProtocol(Protocol):
         """Verify that our peer is sending us a well formed handshake, if not
         we close the connection. If the handshake is well formed we set the
         handshaked instance variable to True so that we know to accept further
-        messages from this peer."""
+        messages from this peer. We also decode which extensions both us and
+        our peer support."""
 
         if (data[0] != len(PSTR) or data[1:20] != PSTR
             or data[28:48] != self.factory.torrent.info_hash):
@@ -152,6 +157,10 @@ class PeerProtocol(Protocol):
             self.transport.loseConnection()
         else:
             self.handshaked = True
+
+        reserved = data[20:28]
+        if ord(reserved[7]) & ord('\x04'):
+            self.fast_extension = True
 
     def connectionLost(self, reason):
         self.factory.protos.remove(self)

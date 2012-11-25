@@ -23,7 +23,7 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.fast_extension = False
-        self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
+        self.peer_bitfield = None
         self.buf = ReadOnceBuffer()
         self.requests = set()
 
@@ -94,6 +94,8 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
 
     def have(self, payload):
+        if self.peer_bitfield is None:
+            self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
         self.peer_bitfield[payload] = True
 
     def bitfield(self, payload):
@@ -164,7 +166,7 @@ class PeerProtocol(Protocol):
             self.handshaked = True
 
         reserved = data[20:28]
-        if ord(reserved[7]) & ord('\x04'):
+        if reserved[7] & ord('\x04'):
             self.fast_extension = True
 
     def connectionLost(self, reason):

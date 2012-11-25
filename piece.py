@@ -8,8 +8,7 @@ class Piece(object):
 
     def __init__(self, hash, blocks):
         self.hash = hash
-        self.blocks = bitarray.bitarray(blocks, endian='big')
-        self.blocks.setall(False)
+        self.blocks = bitarray.bitarray(blocks * '0', endian='big')
         self.block_data = {}
         self.next_piece = 0
 

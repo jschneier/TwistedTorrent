@@ -20,7 +20,7 @@ class PeerProtocol(Protocol):
         self.peer_choking = True
         self.peer_interested = False
         self.handshaked = False
-        self.peer_bitfield = None
+        self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
         self.buf = ReadOnceBuffer()
         self.requests = 0
 
@@ -67,10 +67,6 @@ class PeerProtocol(Protocol):
         determine the necessary length and are not included in calc."""
         return self.bufsize >= 4 and self.bufsize - 4 >= struct.unpack('!I', str(self.buf.peek(0, 4)))[0]
 
-    @property
-    def bufsize(self):
-        return len(self.buf)
-
     def keep_alive(self, *args):
         pass
 
@@ -87,9 +83,7 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
 
     def have(self, payload):
-        """We only use this if we previously received a bitfield message."""
-        if self.peer_bitfield is not None:
-            self.peer_bitfield[payload] = True
+        self.peer_bitfield[payload] = True
 
     def bitfield(self, payload):
         self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
@@ -142,6 +136,14 @@ class PeerProtocol(Protocol):
     def connectionLost(self, reason):
         self.factory.protos.remove(self)
 
+    @property
+    def torrent_size(self):
+        return len(self.factory.torrent.pieces)
+
+    @property
+    def bufsize(self):
+        return len(self.buf)
+
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol. Maintains state
     data across protocol instances and distributes strategy instructions."""
@@ -152,8 +154,7 @@ class PeerProtocolFactory(ClientFactory):
         self.client = client
         self.torrent = torrent
         self.protos = set()
-        self.bitfield = bitarray(len(self.torrent.pieces), endian='big')
-        self.bitfield.setall(False)
+        self.bitfield = bitarray(len(self.torrent.pieces) * '0', endian='big')
         self.strategy = self.make_requests
 
     def fetch(self, index, offset, size):

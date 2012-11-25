@@ -31,15 +31,20 @@ class PeerProtocol(Protocol):
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
                                 peer_id=self.factory.client.client_id)
         self.factory.protos.add(self)
-        if any(self.factory.bitfield):
-            self.send('bitfield', bitfield=self.factory.bitfield)
-
     def dataReceived(self, data):
         self.buf += data
 
         if not self.handshaked:
             if self.bufsize >= HANDSHAKE_LEN:
                 self.parse_handshake(self.buf[:HANDSHAKE_LEN])
+
+                if all(self.factory.bitfield) and self.fast_extension:
+                    self.send('have_all')
+                elif not any(self.factory.bitfield) and self.fast_extension:
+                    self.send('have_none')
+                else:
+                    self.send('bitfield', bitfield=self.factory.bitfield)
+
                 self.send('interested')
             else:
                 self.transport.loseConnection()

@@ -1,4 +1,3 @@
-*.py[co]
+*.pyc
 *.swp
-temp*
 *.torrent

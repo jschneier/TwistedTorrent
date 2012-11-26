@@ -31,8 +31,9 @@ class TorrentClient(object):
     @defer.inlineCallbacks
     def _download(self, torrent):
         hosts_ports = yield self.get_peers(torrent)
-        for host_port in hosts_ports:
-            torrent.connect_to_peer(host_port)
+        if hosts_ports is not None:
+            for host_port in hosts_ports:
+                torrent.connect_to_peer(host_port)
 
     @defer.inlineCallbacks
     def get_peers(self, torrent):
@@ -43,6 +44,9 @@ class TorrentClient(object):
                 defer.returnValue(peers)
             except Exception:
                 pass
+        else:
+            print 'Unable to connect to a tracker for %s' % torrent.filename
+            self.delete_torrent(torrent)
 
     @defer.inlineCallbacks
     def http_announce(self, torrent):
@@ -90,7 +94,8 @@ class TorrentClient(object):
         return url
 
     def delete_torrent(self, torrent):
-        '''Remove a torrent that has finished downloading.'''
+        '''Remove a torrent that has finished downloading or was unable to
+        connect to any trackers.'''
 
         self.torrents.remove(torrent)
         if not self.torrents:

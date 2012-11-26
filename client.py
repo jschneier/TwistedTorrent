@@ -3,9 +3,11 @@ import urllib
 import struct
 import socket
 import btencode
+import itertools
 from torrent import ActiveTorrent
 from constants import CLIENT_ID_VER
 from twisted.web.client import getPage
+from twisted.internet import defer
 
 class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified
@@ -26,42 +28,49 @@ class TorrentClient(object):
         for torrent in self.torrents:
             self._download(torrent)
 
+    @defer.inlineCallbacks
     def _download(self, torrent):
-        d = self.announce(torrent, 'started')
-        def dl(host_ports):
-            for host_port in host_ports:
-                torrent.connect_to_peer(host_port)
-        d.addCallback(dl)
+        hosts_ports = yield self.get_peers(torrent)
+        for host_port in hosts_ports:
+            torrent.connect_to_peer(host_port)
 
-    def announce(self, torrent, etype):
+    @defer.inlineCallbacks
+    def get_peers(self, torrent):
+        for url in itertools.chain.from_iterable(torrent.announce_list):
+            try:
+                torrent.tracker_url = url
+                peers = yield self.http_announce(torrent)
+                defer.returnValue(peers)
+            except Exception:
+                pass
+
+    @defer.inlineCallbacks
+    def http_announce(self, torrent):
         """Encode and send the request to the tracker and then parse the
         response to get the host and ports of the specified peers."""
 
-        url = self._build_url(torrent, etype)
-        d = getPage(url, timeout=5)
+        url = self._build_url(torrent, 'started')
+        response = yield getPage(url, timeout=5)
 
-        def parse_response(response):
-            if not response:
-                raise AnnounceError('No response from tracker for url %s' % url)
+        defer.returnValue(self.parse_response(response))
 
-            tracker_dict = btencode.btdecode(response)
-            if 'failure reason' in tracker_dict:
-                raise AnnounceError('''failure reason key in tracker response\
-                                        %s:''' % tracker_dict['failure reason'])
+    def parse_response(self, response):
 
-            peers_raw = tracker_dict['peers']
-            if isinstance(peers_raw, dict):
-                raise AnnounceError('peers as dictionary model not implemented')
+        tracker_dict = btencode.btdecode(response)
+        if 'failure reason' in tracker_dict:
+            raise AnnounceError('''failure reason key in tracker response\
+                                    %s:''' % tracker_dict['failure reason'])
 
-            #break into 6 byte chunks - 4 for ip 2 for port
-            peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-            hosts_ports = [(socket.inet_ntoa(peer[0:4]),
-                            struct.unpack('!H', peer[4:6])[0]) for peer in peers]
+        peers_raw = tracker_dict['peers']
+        if isinstance(peers_raw, dict):
+            raise AnnounceError('peers as dictionary model not implemented')
 
-            return hosts_ports
+        #break into 6 byte chunks - 4 for ip 2 for port
+        peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+        hosts_ports = [(socket.inet_ntoa(peer[0:4]),
+                        struct.unpack('!H', peer[4:6])[0]) for peer in peers]
 
-        d.addCallback(parse_response)
-        return d
+        return hosts_ports
 
     def _build_url(self, torrent, etype):
         """Create the url that is sent to the tracker. The etype that is
@@ -76,8 +85,7 @@ class TorrentClient(object):
             'left': torrent.left,
             'event': etype }
 
-        base = torrent.announce_url
-        url = base + '?' + urllib.urlencode(announce_query)
+        url = torrent.tracker_url + '?' + urllib.urlencode(announce_query)
 
         return url
 

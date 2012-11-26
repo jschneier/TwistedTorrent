@@ -1,5 +1,7 @@
 import time
 import urllib
+import struct
+import socket
 import btencode
 from torrent import ActiveTorrent
 from constants import CLIENT_ID_VER
@@ -36,7 +38,7 @@ class TorrentClient(object):
         response to get the host and ports of the specified peers."""
 
         url = self._build_url(torrent, etype)
-        d = getPage(url)
+        d = getPage(url, timeout=5)
 
         def parse_response(response):
             if not response:
@@ -52,11 +54,11 @@ class TorrentClient(object):
                 raise AnnounceError('peers as dictionary model not implemented')
 
             #break into 6 byte chunks - 4 for ip 2 for port
-            peers_bytes = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-            peers = (map(ord, peer) for peer in peers_bytes)
-            host_ports = [('.'.join(map(str, peer[0:4])), 256 * peer[4] + peer[5]) for peer in peers]
+            peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+            hosts_ports = [(socket.inet_ntoa(peer[0:4]),
+                            struct.unpack('!H', peer[4:6])[0]) for peer in peers]
 
-            return host_ports
+            return hosts_ports
 
         d.addCallback(parse_response)
         return d

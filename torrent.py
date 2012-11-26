@@ -26,7 +26,11 @@ class Torrent(object):
             print 'IOError handling %s' % self.filename
             sys.exit(1)
 
-        self.announce_url = torrent_dict['announce']
+        try:
+            self.announce_list = torrent_dict['announce-list']
+        except KeyError:
+            self.announce_list = [torrent_dict['announce']]
+
         info = torrent_dict['info']
         try:
             self.info_hash = sha1(btencode.btencode(info)).digest()

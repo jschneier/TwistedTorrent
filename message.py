@@ -68,7 +68,7 @@ class Message(str):
     def port(**kwargs):
         return struct.pack('!IBH', 3, 9, kwargs['listen_port'])
 
-    # from here on down are fast peers extension
+    # from here on down are fast peers extensions
     @staticmethod
     def suggest_piece(**kwargs):
         return struct.pack('!IBI', 5, 13, kwargs['index'])

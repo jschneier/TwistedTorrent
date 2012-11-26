@@ -29,7 +29,7 @@ class Torrent(object):
         try:
             self.announce_list = torrent_dict['announce-list']
         except KeyError:
-            self.announce_list = [torrent_dict['announce']]
+            self.announce_list = [[torrent_dict['announce']]]  # list of lists
 
         info = torrent_dict['info']
         try:
@@ -74,6 +74,7 @@ class ActiveTorrent(Torrent):
         self.factory = PeerProtocolFactory(client, self)
         self.tempfile = tempfile.TemporaryFile()
         self.to_dl = set(range(self.n_pieces))
+        self.tracker_url = None  # set by client, need to test various urls
 
     def add_block(self, index, offset, block):
         piece = self.pieces[index]

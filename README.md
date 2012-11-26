@@ -5,16 +5,14 @@
     * bitarray
 
 #### TODO
+    * Finish fast extension
     * UDP tracker - DHT
+    * Properly use deferreds
     * Announce list
-    * Tracker indexing
     * Implement seeding
     * Implement cancel method - algorithms
-    * Integrate with Trial
     * Actually care about peer\_interested etc
     * Calculate strategy methods
-    * Track download progress
-    * Write front end command line layer
 
 #### Resources
 

@@ -96,7 +96,7 @@ class PeerProtocol(Protocol):
     def have(self, payload):
         if self.peer_bitfield is None:
             self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
-        self.peer_bitfield[payload] = True
+        self.peer_bitfield[struct.unpack('!I', str(payload))[0]] = True
 
     def bitfield(self, payload):
         self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
@@ -210,10 +210,11 @@ class PeerProtocolFactory(ClientFactory):
                 index, offset_index = self.torrent.next_block()
                 offset = offset_index * BSIZE
                 length = self.torrent.pieces[index].get_size(offset_index)
-                params = (index, offset, length)
-                if proto.peer_bitfield[index] and params not in proto.requests:
+                p = (index, offset, length)
+                if p not in proto.requests and (proto.peer_bitfield is None or
+                                                proto.peer_bitfield[index]):
                     proto.send('request', index=index, offset=offset, length=length)
-                    proto.requests.add(params)
+                    proto.requests.add(p)
 
     def stop(self):
         """Do nothing because all pieces have been successfully downloaded."""

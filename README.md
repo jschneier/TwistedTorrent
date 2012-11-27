@@ -6,9 +6,8 @@
 
 #### TODO
     * Finish fast extension
-    * UDP tracker - DHT
-    * Properly use deferreds
-    * Announce list
+    * UDP tracker
+    * DHT
     * Implement seeding
     * Implement cancel method - algorithms
     * Actually care about peer\_interested etc

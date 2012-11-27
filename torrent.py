@@ -66,11 +66,12 @@ class ActiveTorrent(Torrent):
     Responsible for figuring out which strategies the factory should be passing
     down to the protocols and for handling all writing of file data."""
 
-    def __init__(self, client, filename):
+    def __init__(self, client, filename, port):
         super(ActiveTorrent, self).__init__(filename)
         self.client = client
         self.uploaded = 0
         self.downloaded = 0
+        self.port = port
         self.factory = PeerProtocolFactory(client, self)
         self.tempfile = tempfile.TemporaryFile()
         self.to_dl = set(range(self.n_pieces))

@@ -11,10 +11,13 @@ class TorrentClient(object):
 
     def __init__(self, *torrents):
         self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]
-        self.port = 6881
+        ports = range(6881, 6890)
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')
-        self.torrents = {ActiveTorrent(self, torrent) for torrent in torrents}
+        if len(torrents) > len(ports):
+            raise ValueError('Too many torrents, only %d allowed' % len(ports))
+        self.torrents = {ActiveTorrent(self, torrent, port) for
+                            torrent, port in zip(torrents, ports)}
         self.tracker = TrackerClient(self)
 
         from twisted.internet import reactor

@@ -9,6 +9,9 @@ from twisted.web.client import getPage
 from twisted.internet import defer, reactor
 from twisted.internet.protocol import DatagramProtocol
 
+actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
+events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
+
 class UDPTracker(DatagramProtocol):
 
     def __init__(self, factory, host, port):
@@ -18,11 +21,12 @@ class UDPTracker(DatagramProtocol):
         self.connect_trans_id = self.generate_32bit()
         self.key = self.generate_32bit()
         self.connected = False
+        self.deferred = defer.Deferred()
 
     @defer.inlineCallbacks
     def announce(self, torrent):
         self.torrent = torrent
-        host = yield reactor.resolve(self.host, timeout=(1,))
+        host = yield reactor.resolve(self.host, timeout=(1, 3))
         self.host = host
         reactor.listenUDP(torrent.port, self)
 
@@ -30,10 +34,10 @@ class UDPTracker(DatagramProtocol):
         """Connect so we can only speak to one peer. Then send out the initial
         connection packet."""
 
-        self.timeout = reactor.callLater(5, self.timed_out)
         self.transport.connect(self.host, self.port)
         self.transport.write(struct.pack('!QII', UDP_CONN_ID,
-                                            0, self.connect_trans_id))
+                                    actions['connect'], self.connect_trans_id))
+        self.timeout = reactor.callLater(5, self.timed_out)
 
     def timed_out(self):
         self.transport.loseConnection()
@@ -48,15 +52,23 @@ class UDPTracker(DatagramProtocol):
             assert self.connect_trans_id == trans_id
             self.connect_id = conn_id
             self.trans_id = self.generate_32bit()
-            self.transport.write(self._build_announce_packet, 1, 2)
+            self.transport.write(self._make_announce_pack(actions['announce'],
+                                                            events['started']))
             self.connected = True
         else:
-            assert len(datagram) >= 20
+            size = len(datagram)
+            assert size >= 20
+            action, trans_id = struct.unpack_from('!II', datagram)
+            assert action == 1
+            assert trans_id == self.trans_id
+            datagram = datagram[8:]
+            self.get_peers(datagram)
+            self.transport.loseConnection()
 
-    def _build_announce_packet(self, action, event):
+    def _make_announce_pack(self, action, event):
         return (struct.pack('!QII', self.connect_id, action, self.trans_id) +
                     self.torrent.info_hash + self.factory.client.client_id +
-                    struct.pack('!QQQIIIIH', self.torrent.downloaded,
+                    struct.pack('!QQQIIIiH', self.torrent.downloaded,
                         self.torrent.left, self.torrent.uploaded, event, 0,
                         self.key, -1, self.torrent.port))
 

@@ -1,13 +1,13 @@
 import struct
-import socket
 import urllib
-import random
 import btencode
 from itertools import chain
 from constants import UDP_CONN_ID
 from twisted.web.client import getPage
 from twisted.internet import defer, reactor
 from twisted.internet.protocol import DatagramProtocol
+
+from utils import n_random, decode_hosts_ports
 
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
 events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
@@ -18,8 +18,8 @@ class UDPTracker(DatagramProtocol):
         self.factory = factory
         self.host = host
         self.port = port
-        self.connect_trans_id = self.generate_32bit()
-        self.key = self.generate_32bit()
+        self.connect_trans_id = n_random(4)
+        self.key = n_random(4)
         self.connected = False
         self.deferred = defer.Deferred()
 
@@ -37,7 +37,7 @@ class UDPTracker(DatagramProtocol):
         connection packet."""
 
         self.transport.connect(self.host, self.port)
-        self.transport.write(struct.pack('!QII', UDP_CONN_ID,
+        self.transport.write(struct.pack('!QI4s', UDP_CONN_ID,
                                     actions['connect'], self.connect_trans_id))
         self.timeout = reactor.callLater(5, self.timed_out)
 
@@ -52,7 +52,7 @@ class UDPTracker(DatagramProtocol):
             assert action == 0
             assert self.connect_trans_id == trans_id
             self.connect_id = conn_id
-            self.trans_id = self.generate_32bit()
+            self.trans_id = n_random(4)
             self.transport.write(self._make_announce_pack(actions['announce'],
                                                             events['started']))
             self.connected = True
@@ -71,27 +71,16 @@ class UDPTracker(DatagramProtocol):
         # first 12 bytes is # seeders # leechers and seconds interval - ignore
         peers_raw = raw_data[12:]
 
-        #break into 6 byte chunks - 4 for ip 2 for port
-        peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-        hosts_ports = [(socket.inet_ntoa(peer[0:4]),
-                        struct.unpack('!H', peer[4:6])[0])
-                        for peer in peers]
-
-        self.deferred.callback(hosts_ports)
+        self.deferred.callback(decode_hosts_ports(peers_raw))
 
 
     def _make_announce_pack(self, action, event):
-        return struct.pack('!QII20s20sQQQIIIiH', self.connect_id, action,
+        return struct.pack('!QI4s20s20sQQQII4siH', self.connect_id, action,
                                     self.trans_id, self.torrent.info_hash,
                                     self.factory.client.client_id,
                                     self.torrent.downloaded, self.torrent.left,
                                     self.torrent.uploaded, event, 0, self.key,
                                     -1, self.torrent.port)
-
-    @staticmethod
-    def generate_32bit():
-        m = 4294967295
-        return random.randint(0, m)
 
 class HTTPTracker(object):
 
@@ -115,12 +104,7 @@ class HTTPTracker(object):
         if isinstance(peers_raw, dict):
             raise AnnounceError('peers as dictionary model not implemented')
 
-        #break into 6 byte chunks - 4 for ip 2 for port
-        peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
-        hosts_ports = [(socket.inet_ntoa(peer[0:4]),
-                        struct.unpack('!H', peer[4:6])[0]) for peer in peers]
-
-        return hosts_ports
+        return decode_hosts_ports(peers_raw)
 
     def _build_url(self, torrent, etype):
         """Create the url that is sent to the tracker. The etype that is

@@ -212,8 +212,7 @@ class PeerProtocolFactory(ClientFactory):
                 offset = offset_index * BSIZE
                 length = self.torrent.pieces[index].get_size(offset_index)
                 p = (index, offset, length)
-                if p not in proto.requests and (proto.peer_bitfield is None or
-                                                proto.peer_bitfield[index]):
+                if p not in proto.requests and proto.peer_bitfield[index]:
                     proto.send('request', index=index, offset=offset, length=length)
                     proto.requests.add(p)
 

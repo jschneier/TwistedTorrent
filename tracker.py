@@ -14,10 +14,10 @@ events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
 
 class UDPTracker(DatagramProtocol):
 
-    def __init__(self, factory, host, port):
+    def __init__(self, factory, port, host):
         self.factory = factory
         self.host = host
-        self.port = port
+        self.peer_port = port
         self.connect_trans_id = n_random(4)
         self.key = n_random(4)
         self.connected = False
@@ -28,7 +28,7 @@ class UDPTracker(DatagramProtocol):
         self.torrent = torrent
         host = yield reactor.resolve(self.host, timeout=(1, 3))
         self.host = host
-        reactor.listenUDP(torrent.port, self)
+        reactor.listenUDP(self.factory.client.port, self)
         peers = yield self.deferred
         defer.returnValue(peers)
 
@@ -36,7 +36,7 @@ class UDPTracker(DatagramProtocol):
         """Connect so we can only speak to one peer. Then send out the initial
         connection packet."""
 
-        self.transport.connect(self.host, self.port)
+        self.transport.connect(self.host, self.peer.port)
         self.transport.write(struct.pack('!QI4s', UDP_CONN_ID,
                                     actions['connect'], self.connect_trans_id))
         self.timeout = reactor.callLater(5, self.timed_out)
@@ -80,7 +80,7 @@ class UDPTracker(DatagramProtocol):
                                     self.factory.client.client_id,
                                     self.torrent.downloaded, self.torrent.left,
                                     self.torrent.uploaded, event, 0, self.key,
-                                    -1, self.torrent.port)
+                                    -1, self.factory.client.port)
 
 class HTTPTracker(object):
 
@@ -113,7 +113,7 @@ class HTTPTracker(object):
         announce_query = {
             'info_hash': torrent.info_hash,
             'peer_id': self.factory.client.client_id,
-            'port': torrent.port,
+            'port': self.factory.client.port,
             'uploaded': torrent.uploaded,
             'downloaded': torrent.downloaded,
             'left': torrent.left,

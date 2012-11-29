@@ -68,14 +68,14 @@ class UDPTracker(DatagramProtocol):
             self.transport.loseConnection()
 
     def peers(self, raw_data):
-        # first 8 bytes is number of seeders and leechers - ignore
-        peers_raw = raw_data[8:]
+        # first 12 bytes is # seeders # leechers and seconds interval - ignore
+        peers_raw = raw_data[12:]
 
         #break into 6 byte chunks - 4 for ip 2 for port
         peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
         hosts_ports = [(socket.inet_ntoa(peer[0:4]),
                         struct.unpack('!H', peer[4:6])[0])
-                        for peer in peers if len(peer) == 6]
+                        for peer in peers]
 
         self.deferred.callback(hosts_ports)
 

@@ -1,4 +1,5 @@
 import struct
+
 from constants import PSTR, RESVD
 
 class Message(str):

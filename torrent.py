@@ -1,9 +1,10 @@
 import sys
 import math
 import tempfile
-import btencode
 from hashlib import sha1
 from random import sample
+
+import btencode
 from constants import BSIZE
 from piece import Piece, FinalPiece
 from protocol import PeerProtocolFactory

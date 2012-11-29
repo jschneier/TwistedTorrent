@@ -1,12 +1,12 @@
 import struct
 import urllib
-import btencode
 from itertools import chain
-from constants import UDP_CONN_ID
 from twisted.web.client import getPage
 from twisted.internet import defer, reactor
 from twisted.internet.protocol import DatagramProtocol
 
+import btencode
+from constants import UDP_CONN_ID
 from utils import n_random, decode_hosts_ports
 
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}

@@ -1,9 +1,10 @@
 import time
 import copy
+from twisted.internet import defer
+
 from torrent import ActiveTorrent
 from tracker import TrackerClient
 from constants import CLIENT_ID_VER
-from twisted.internet import defer
 
 class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified

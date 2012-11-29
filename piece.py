@@ -1,5 +1,6 @@
 import hashlib
 import bitarray
+
 from constants import BSIZE
 
 class Piece(object):

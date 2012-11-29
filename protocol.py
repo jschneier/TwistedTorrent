@@ -99,7 +99,8 @@ class PeerProtocol(Protocol):
         self.peer_bitfield[struct.unpack('!I', str(payload))[0]] = True
 
     def bitfield(self, payload):
-        self.peer_bitfield = bitarray(endian='big').frombytes(str(payload))
+        self.peer_bitfield = bitarray(endian='big')
+        self.peer_bitfield.frombytes(str(payload))
 
     def request(self, payload):
         index, offset, size = struct.unpack('!III', payload)

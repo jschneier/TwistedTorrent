@@ -9,7 +9,7 @@ class TorrentClient(object):
     """A torrent client object, makes the request to the tracker as specified
     and then connects to each peer as necessary."""
 
-    def __init__(self, *torrents):
+    def __init__(self, torrents):
         self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]
         self.port = 6881
         if not torrents:

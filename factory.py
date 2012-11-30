@@ -45,5 +45,8 @@ class PeerProtocolFactory(ClientFactory):
         pass
 
 class ServerPeerFactory(ServerFactory):
-    
+
     protocol = PeerProtocol
+
+    def __init__(self, client):
+        self.client = client

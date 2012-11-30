@@ -7,7 +7,7 @@ from random import sample
 import btencode
 from constants import BSIZE
 from piece import Piece, FinalPiece
-from protocol import PeerProtocolFactory
+from factory import PeerProtocolFactory
 
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""

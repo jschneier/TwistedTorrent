@@ -56,6 +56,7 @@ class PeerProtocol(Protocol):
                 self.transport.loseConnection()
                 break
 
+            print 'about to do: %s' % self.id_to_msg[msg_id]
             getattr(self, self.id_to_msg[msg_id])(payload)
             self.factory.strategy()
 

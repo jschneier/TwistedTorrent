@@ -48,7 +48,7 @@ class UDPTracker(DatagramProtocol):
         self.timeout.reset(5)
         if not self.connected:
             assert len(datagram) >= 16
-            action, trans_id, conn_id = struct.unpack('!IIQ', datagram)
+            action, trans_id, conn_id = struct.unpack('!I4sQ', datagram)
             assert action == 0
             assert self.connect_trans_id == trans_id
             self.connect_id = conn_id
@@ -59,7 +59,7 @@ class UDPTracker(DatagramProtocol):
         else:
             size = len(datagram)
             assert size >= 20
-            action, trans_id = struct.unpack_from('!II', datagram)
+            action, trans_id = struct.unpack_from('!I4s', datagram)
             assert action == 1
             assert trans_id == self.trans_id
             datagram = datagram[8:]

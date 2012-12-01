@@ -3,8 +3,9 @@ import struct
 from constants import PSTR, RESVD
 
 class Message(str):
-    """Subclassing of string, hijack the constructor with __new__ because
-    strings are otherwise immutable."""
+    """Dyanmically generate the string (bytes) which are sent across the wire.
+    Have to hijack object creation with __new__ since strings are immutable and
+    by the time we get to __init__ it is too late."""
 
     def __new__(cls, mtype, **kwargs):
         return str.__new__(cls, getattr(cls, mtype)(**kwargs))

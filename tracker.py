@@ -65,7 +65,6 @@ class UDPTracker(DatagramProtocol):
             datagram = datagram[8:]
             self.peers(datagram)
             self.timeout.cancel()
-            self.transport.loseConnection()
 
     def peers(self, raw_data):
         # first 12 bytes is # seeders # leechers and seconds interval - ignore
@@ -124,6 +123,7 @@ class HTTPTracker(object):
         return url
 
 class TrackerClient(object):
+    """Presents a uniform API across the different kinds of trackers."""
 
     trackers = {'http': HTTPTracker, 'https': HTTPTracker, 'udp': UDPTracker}
 

@@ -32,6 +32,7 @@ class PeerProtocol(Protocol):
         self.send('handshake', info_hash=self.factory.torrent.info_hash,
                                 peer_id=self.factory.client.client_id)
         self.factory.protos.add(self)
+
     def dataReceived(self, data):
         self.buf += data
 
@@ -155,11 +156,9 @@ class PeerProtocol(Protocol):
             return prefix, message_id, self.buf[0: prefix-1]  # -1 for id
 
     def parse_handshake(self, data):
-        """Verify that our peer is sending us a well formed handshake, if not
-        we close the connection. If the handshake is well formed we set the
-        handshaked instance variable to True so that we know to accept further
-        messages from this peer. We also decode which extensions both us and
-        our peer support."""
+        """Verify the well formedness of the handshake and parse the extensions
+        supported by the peer. Connection is dropped if the handshake is not
+        well formed."""
 
         if (data[0] != len(PSTR) or data[1:20] != PSTR
             or data[28:48] != self.factory.torrent.info_hash):

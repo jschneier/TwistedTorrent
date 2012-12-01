@@ -7,8 +7,7 @@ from tracker import TrackerClient
 from constants import CLIENT_ID_VER
 
 class TorrentClient(object):
-    """A torrent client object, makes the request to the tracker as specified
-    and then connects to each peer as necessary."""
+    """A torrent client object. Provides the highest level of abstraction."""
 
     def __init__(self, torrents):
         self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]

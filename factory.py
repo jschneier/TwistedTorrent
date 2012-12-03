@@ -50,3 +50,8 @@ class ServerPeerFactory(ServerFactory):
 
     def __init__(self, client):
         self.client = client
+        from twisted.internet import reactor
+        reactor.listenTCP(self.client.port, self)
+
+    def buildProtocol(self):
+        pass

@@ -1,4 +1,5 @@
 import struct
+import socket
 import urllib
 from itertools import chain
 from twisted.web.client import getPage
@@ -7,7 +8,7 @@ from twisted.internet.protocol import DatagramProtocol
 
 import btencode
 from constants import UDP_CONN_ID
-from utils import n_random, decode_hosts_ports
+from utils import n_random
 
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
 events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
@@ -70,7 +71,7 @@ class UDPTracker(DatagramProtocol):
         # first 12 bytes is # seeders # leechers and seconds interval - ignore
         peers_raw = raw_data[12:]
 
-        self.deferred.callback(decode_hosts_ports(peers_raw))
+        self.deferred.callback(self._decode_hosts_ports(peers_raw))
 
 
     def _make_announce_pack(self, action, event):
@@ -103,7 +104,7 @@ class HTTPTracker(object):
         if isinstance(peers_raw, dict):
             raise AnnounceError('peers as dictionary model not implemented')
 
-        return decode_hosts_ports(peers_raw)
+        return self._decode_hosts_ports(peers_raw)
 
     def _build_url(self, torrent, etype):
         """Create the url that is sent to the tracker. The etype that is
@@ -129,7 +130,7 @@ class TrackerClient(object):
 
     def __init__(self, client, track_port=6969):
         self.client = client
-        self.track_port = 6969
+        self.track_port = track_port
 
     @defer.inlineCallbacks
     def get_peers(self, torrent):
@@ -159,6 +160,16 @@ class TrackerClient(object):
         host = host.strip('/')
 
         return protocol, host, port
+
+    @staticmethod
+    def _decode_hosts_ports(peers_raw):
+        """Decode a compact byte string of hosts and ports into a list of tuples.
+        Peers_raw's length must be a multiple of 6."""
+
+        peers = (peers_raw[i:i+6] for i in range(0, len(peers_raw), 6))
+        hosts_ports = [(socket.inet_ntoa(peer[0:4]),
+                        struct.unpack('!H', peer[4:6])[0]) for peer in peers]
+        return hosts_ports
 
 class AnnounceError(Exception):
     pass

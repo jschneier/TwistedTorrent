@@ -1,15 +1,27 @@
-## TwistedBits - BitTorrent client implemenation
+## TwistedBits
 
-#### Requirements
-    * Twisted
-    * bitarray
+A mostly full-featured lightweight BitTorrent client written in Python and
+implemented using Twisted.
 
-#### TODO
-    * Finish fast extension
-    * DHT
-    * Implement cancel method - algorithms
-    * Actually care about peer\_interested etc
-    * Calculate strategy methods
+### Usage
+
+To use TwistedBits simply clone the git repo and downlad the necessary packages
+and then run (from the top level directory where it is installed):
+
+    ./torrent.py <list of torrents>
+
+### Dependencies
+
+  * Twisted
+
+  * bitarray
+
+### Coming soon
+
+  * The implementation of the Kademlia based Distributed Hash Table (DHT) that is
+    used for most torrents nowadays, this includes magnet links.
+
+  * Endgame algorithms and rarity.
 
 #### Resources
 

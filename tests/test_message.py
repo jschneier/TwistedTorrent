@@ -1,7 +1,7 @@
 import unittest
-from message import Message
-from constants import BSIZE
 from bitarray import bitarray
+from twistedbits.message import Message
+from twistedbits.constants import BSIZE
 
 class MessageTest(unittest.TestCase):
 

@@ -71,7 +71,7 @@ class UDPTracker(DatagramProtocol):
         # first 12 bytes is # seeders # leechers and seconds interval - ignore
         peers_raw = raw_data[12:]
 
-        self.deferred.callback(self._decode_hosts_ports(peers_raw))
+        self.deferred.callback(self.factory._decode_hosts_ports(peers_raw))
 
 
     def _make_announce_pack(self, action, event):
@@ -104,7 +104,7 @@ class HTTPTracker(object):
         if isinstance(peers_raw, dict):
             raise AnnounceError('peers as dictionary model not implemented')
 
-        return self._decode_hosts_ports(peers_raw)
+        return self.factory._decode_hosts_ports(peers_raw)
 
     def _build_url(self, torrent, etype):
         """Create the url that is sent to the tracker. The etype that is

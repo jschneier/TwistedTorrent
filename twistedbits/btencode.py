@@ -72,7 +72,8 @@ def btencode(stuff):
     return ret
 
 encoders = {dict: encode_dict, list: encode_list,
-            str: encode_string, int: encode_int}
+            str: encode_string, int: encode_int,
+            long: encode_int}
 
 class BTDecodeError(Exception):
     pass

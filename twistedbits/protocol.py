@@ -4,7 +4,7 @@ from twisted.internet.protocol import Protocol
 
 from message import Message
 from read_once_buffer import ReadOnceBuffer
-from constants import PSTR, HANDSHAKE_LEN, MAX_SIZE
+from constants import PSTR, HANDSHAKE_LEN, MAX_SIZE, DHT_PORT
 
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""
@@ -24,6 +24,7 @@ class PeerProtocol(Protocol):
         self.peer_interested = False
         self.handshaked = False
         self.fast_extension = False
+        self.dht = False
         self.peer_bitfield = None
         self.buf = ReadOnceBuffer()
         self.requests = set()
@@ -47,6 +48,8 @@ class PeerProtocol(Protocol):
                 else:
                     self.send('bitfield', bitfield=self.factory.bitfield)
 
+                if self.dht:
+                    self.send('port', listen_port=DHT_PORT)
                 self.send('interested')
             else:
                 self.transport.loseConnection()
@@ -123,8 +126,8 @@ class PeerProtocol(Protocol):
         pass
 
     def port(self, payload):
-        """Not supported"""
-        pass
+        dht_port = struct.unpack('!H', payload)
+        print dht_port
 
     def suggest_piece(self, payload):
         index = struct.unpack('!I', payload)
@@ -171,6 +174,9 @@ class PeerProtocol(Protocol):
         reserved = data[20:28]
         if reserved[7] & ord('\x04'):
             self.fast_extension = True
+
+        if reserved[7] & ord('\x01'):
+            self.dht = True
 
     def connectionLost(self, reason):
         self.factory.protos.remove(self)

@@ -99,11 +99,11 @@ class PeerProtocol(Protocol):
     def have(self, payload):
         if self.peer_bitfield is None:
             self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
-        self.peer_bitfield[struct.unpack('!I', str(payload))[0]] = True
+        self.peer_bitfield[struct.unpack('!I', payload)[0]] = True
 
     def bitfield(self, payload):
         self.peer_bitfield = bitarray(endian='big')
-        self.peer_bitfield.frombytes(str(payload))
+        self.peer_bitfield.frombytes(payload)
 
     def request(self, payload):
         index, offset, size = struct.unpack('!III', payload)
@@ -114,7 +114,7 @@ class PeerProtocol(Protocol):
             self.send('piece', index=index, offset=offset, block=block)
 
     def piece(self, payload):
-        index, offset = struct.unpack_from('!II', str(payload))
+        index, offset = struct.unpack_from('!II', payload)
         block = payload[8:]
         self.requests.remove((index, offset, len(block)))
         self.factory.add_block(index, offset, block)
@@ -141,7 +141,7 @@ class PeerProtocol(Protocol):
         self.peer_bitfield = bitarray(self.torrent_size * '0', endian='big')
 
     def reject_request(self, payload):
-        index, offset, length = struct.unpack('!III', str(payload))
+        index, offset, length = struct.unpack('!III', payload)
         self.requests.remove((index, offset, length))
 
     def parse_message(self):
@@ -153,7 +153,8 @@ class PeerProtocol(Protocol):
         if message_id < 4:
             return prefix, message_id, None
         else:
-            return prefix, message_id, self.buf[0: prefix-1]  # -1 for id
+            # -1 for id, call str() because can't unpack bytearrays
+            return prefix, message_id, str(self.buf[0: prefix-1])
 
     def parse_handshake(self, data):
         """Verify the well formedness of the handshake and parse the extensions

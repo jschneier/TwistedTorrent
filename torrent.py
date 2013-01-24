@@ -18,5 +18,5 @@ except ImportError:
 if len(sys.argv) == 1:
     sys.exit('Usage: ./torrent.py <list of torrent files>')
 
-from twistedbits.client import TorrentClient
+from twistedtorrent.client import TorrentClient
 TorrentClient(sys.argv[1:])

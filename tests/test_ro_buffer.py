@@ -1,5 +1,5 @@
 import unittest
-from twistedbits.read_once_buffer import ReadOnceBuffer
+from twistedtorrent.read_once_buffer import ReadOnceBuffer
 
 class ReadOnceBufferTest(unittest.TestCase):
     

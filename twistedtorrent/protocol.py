@@ -6,6 +6,8 @@ from message import Message
 from read_once_buffer import ReadOnceBuffer
 from constants import PSTR, HANDSHAKE_LEN, MAX_SIZE, DHT_PORT
 
+extension_ids = frozenset((13, 14, 15, 16, 17))
+
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""
 
@@ -14,8 +16,6 @@ class PeerProtocol(Protocol):
                  7: 'piece', 8: 'cancel', 9: 'port', 13: 'suggest_piece',
                  14: 'have_all', 15: 'have_none', 16: 'reject_request',
                  17: 'allowed_fast'}
-
-    extension_ids = frozenset((13, 14, 15, 16, 17))
 
     def __init__(self):
         self.am_choking = True
@@ -56,7 +56,7 @@ class PeerProtocol(Protocol):
 
         while self.has_msg():
             prefix, msg_id, payload = self.parse_message()
-            if msg_id in self.extension_ids and not self.fast_extension:
+            if msg_id in extension_ids and not self.fast_extension:
                 self.transport.loseConnection()
                 break
 

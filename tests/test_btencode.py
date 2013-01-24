@@ -1,5 +1,5 @@
 import unittest
-from twistedbits.btencode import (btdecode, btencode,
+from twistedtorrent.btencode import (btdecode, btencode,
                                         BTDecodeError, BTEncodeError)
 
 class TestBTDecode(unittest.TestCase):

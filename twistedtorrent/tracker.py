@@ -12,6 +12,9 @@ from utils import n_random, decode_hosts_ports
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
 events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 class UDPTracker(DatagramProtocol):
 
     def __init__(self, factory, host, port):
@@ -141,10 +144,9 @@ class TrackerClient(object):
                 peers = yield self.tracker.announce(torrent)
                 defer.returnValue(peers)
             except Exception as e:
-                print e
-                pass
+                logging.error('exception: %s getting peers for url: %s', e, url)
         else:
-            print 'Unable to connect to a tracker for %s' % torrent.filename
+            logging.error('Unable to connect to a tracker for %s', torrent.filename)
             self.client.delete_torrent(torrent)
 
     @staticmethod

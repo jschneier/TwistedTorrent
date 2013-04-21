@@ -8,6 +8,9 @@ from constants import PSTR, HANDSHAKE_LEN, MAX_SIZE, DHT_PORT
 
 extension_ids = frozenset((13, 14, 15, 16, 17))
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 class PeerProtocol(Protocol):
     """An instance of the BitTorrent protocol. Encapsulates a connection."""
 
@@ -60,7 +63,7 @@ class PeerProtocol(Protocol):
                 self.transport.loseConnection()
                 break
 
-            print 'about to do: %s' % self.id_to_msg[msg_id]
+            logging.info('about to do: %s', self.id_to_msg[msg_id])
             getattr(self, self.id_to_msg[msg_id])(payload)
             self.factory.strategy()
 
@@ -127,7 +130,7 @@ class PeerProtocol(Protocol):
 
     def port(self, payload):
         dht_port = struct.unpack('!H', payload)
-        print dht_port
+        logging.debug('dht ports %s', dht_port)
 
     def suggest_piece(self, payload):
         index = struct.unpack('!I', payload)

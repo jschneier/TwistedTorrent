@@ -10,6 +10,9 @@ from constants import BSIZE
 from piece import Piece, FinalPiece
 from factory import PeerProtocolFactory
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 class Torrent(object):
     """Container for parsed metadata from a .torrent file."""
 
@@ -22,10 +25,10 @@ class Torrent(object):
             with open(self.filename) as tor:
                 torrent_dict = btencode.btdecode(tor.read())
         except btencode.BTDecodeError:
-            print 'BTDecodeError handling %s' % self.filename
+            logging.error('BTDecodeError handling %s', self.filename)
             sys.exit(1)
-        except IOError:
-            print 'IOError handling %s' % self.filename
+        except IOError as e:
+            logging.error('IOError handling %s: %s', self.filename, e)
             sys.exit(1)
 
         try:
@@ -37,7 +40,7 @@ class Torrent(object):
         try:
             self.info_hash = sha1(btencode.btencode(info)).digest()
         except btencode.BTEncodeError as e:
-            print 'BTEncodeError handling %s: %s' % (self.filename, e.args[0])
+            logging.error('BTEncodeError handling %s', self.filename, e)
             sys.exit(1)
         self.piece_length = info['piece length']
 

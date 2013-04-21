@@ -1,11 +1,11 @@
-## TwistedBits
+## TwistedTorrent
 
 A mostly full-featured lightweight BitTorrent client written in Python and
 implemented using Twisted.
 
 ### Usage
 
-To use TwistedBits simply clone the git repo and downlad the necessary packages
+To use TwistedTorrent simply clone the git repo and downlad the necessary packages
 and then run (from the top level directory where it is installed):
 
     ./torrent.py <list of torrents>

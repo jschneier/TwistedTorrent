@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-VERSION = sys.version_info
-if VERSION[0] != 2 or VERSION[1] != 7:
+if sys.version_info != (2, 7):
     sys.exit('TwistedTorrent requires Python 2.7')
 
 try:

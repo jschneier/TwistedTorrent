@@ -15,9 +15,9 @@ setup(
     install_requires=requires,
     long_description=open('README.md').read(),
     license=open('LICENSE').read(),
-    entry_points='''
-    # -*- Entry points: -*-
-    [console_scripts]
-    torrent = twisted_torrent.scripts:do_torrent
-    '''
+    entry_points={
+        'console_scripts': [
+            'torrent = twisted_torrent.scripts:do_torrent'
+        ]
+    }
 )

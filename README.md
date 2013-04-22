@@ -3,12 +3,14 @@
 A mostly full-featured lightweight BitTorrent client written in Python and
 implemented using Twisted.
 
-### Usage
+### Usage and Installation
 
-To use TwistedTorrent simply clone the git repo and downlad the necessary packages
-and then run (from the top level directory where it is installed):
+    git clone git@github.com:jschneier/TwistedTorrent.git
+    sudo python setup.py install
 
-    ./torrent.py <list of torrents>
+This will install a console script called `torrent`. You can now just run:
+
+    torrent <list of torrent files to download>
 
 ### Dependencies
 

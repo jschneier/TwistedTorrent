@@ -1,0 +1,2 @@
+twisted>=13.0
+bitarray>=0.8

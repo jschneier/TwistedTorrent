@@ -2,4 +2,5 @@
 *.swp
 *.torrent
 *.egg*
+docs/_build
 torrents/

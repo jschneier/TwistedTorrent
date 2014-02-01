@@ -1,0 +1,2 @@
+Twisted==13.0.0
+bitarray==0.8.0

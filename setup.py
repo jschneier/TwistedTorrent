@@ -1,23 +1,22 @@
 from setuptools import setup, find_packages
+import twistedtorrent
 
-__version__ = '0.5.1'
-__author__ = 'Josh Schneier'
+with open('./requirements.txt', 'r') as r:
+    requires = r.read().split()
 
-requires = [
-    'twisted==13.0.0',
-    'bitarray==0.8.0'
-]
+with open('./README.md', 'r') as r:
+    readme = r.read()
 
 setup(
     name='Twisted Torrent',
-    version=__version__,
+    version=twistedtorrent.__version__,
     packages=find_packages(),
     install_requires=requires,
-    long_description=open('README.md').read(),
-    license=open('LICENSE').read(),
+    long_description=readme,
+    license='MIT',
     entry_points='''
     # -*- Entry points: -*-
     [console_scripts]
-    torrent = twisted_torrent.scripts:do_torrent
+    torrent = twistedtorrent.scripts:do_torrent
     '''
 )

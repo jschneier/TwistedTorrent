@@ -17,6 +17,6 @@ setup(
     entry_points='''
     # -*- Entry points: -*-
     [console_scripts]
-    torrent = twistedtorrent.scripts:do_torrent
+    torrent = twistedtorrent.scripts:torrent
     '''
 )

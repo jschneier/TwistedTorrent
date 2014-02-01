@@ -5,9 +5,9 @@ from twisted.web.client import getPage
 from twisted.internet import defer, reactor
 from twisted.internet.protocol import DatagramProtocol
 
-import btencode
-from constants import UDP_CONN_ID
-from utils import n_random, decode_hosts_ports
+from .btencode import btdecode
+from .constants import UDP_CONN_ID
+from .utils import n_random, decode_hosts_ports
 
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
 events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
@@ -97,7 +97,7 @@ class HTTPTracker(object):
 
     def _parse_response(self, response):
 
-        tracker_dict = btencode.btdecode(response)
+        tracker_dict = btdecode(response)
         if 'failure reason' in tracker_dict:
             raise AnnounceError('''failure reason key in tracker response\
                                     %s:''' % tracker_dict['failure reason'])

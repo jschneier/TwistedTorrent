@@ -2,9 +2,9 @@ import struct
 from bitarray import bitarray
 from twisted.internet.protocol import Protocol
 
-from message import Message
-from read_once_buffer import ReadOnceBuffer
-from constants import PSTR, HANDSHAKE_LEN, MAX_SIZE, DHT_PORT
+from .message import Message
+from .read_once_buffer import ReadOnceBuffer
+from .constants import PSTR, HANDSHAKE_LEN, MAX_SIZE, DHT_PORT
 
 extension_ids = frozenset((13, 14, 15, 16, 17))
 

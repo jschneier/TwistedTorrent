@@ -2,9 +2,9 @@ import time
 import copy
 from twisted.internet import defer
 
-from torrent import ActiveTorrent
-from tracker import TrackerClient
-from constants import CLIENT_ID_VER
+from .torrent import ActiveTorrent
+from .tracker import TrackerClient
+from .constants import CLIENT_ID_VER
 
 class TorrentClient(object):
     """A torrent client object. Provides the highest level of abstraction."""

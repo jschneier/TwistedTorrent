@@ -1,7 +1,7 @@
 import hashlib
 import bitarray
 
-from constants import BSIZE
+from .constants import BSIZE
 
 class Piece(object):
     """Provide an abstraction over a BitTorrent piece to hide the handling of

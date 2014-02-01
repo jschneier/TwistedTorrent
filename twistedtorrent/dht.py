@@ -2,7 +2,7 @@ from hashlib import sha1
 #from collections import defaultdict
 #from twisted.internet import protocol
 
-from constants import K
+from .constants import K
 
 def distance(node1, node2):
     return to_int(node1.id) ^ to_int(node2.id)

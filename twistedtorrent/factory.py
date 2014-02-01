@@ -1,8 +1,8 @@
 from bitarray import bitarray
 from twisted.internet.protocol import ClientFactory, ServerFactory
 
-from constants import BSIZE
-from protocol import PeerProtocol
+from .constants import BSIZE
+from .protocol import PeerProtocol
 
 class PeerProtocolFactory(ClientFactory):
     """Factory to generate instances of the Peer protocol. Maintains state

@@ -5,10 +5,15 @@ import tempfile
 from hashlib import sha1
 from random import sample
 
-import btencode
-from constants import BSIZE
-from piece import Piece, FinalPiece
-from factory import PeerProtocolFactory
+from .btencode import (
+    btencode,
+    btdecode,
+    BTEncodeError,
+    BTDecodeError
+)
+from .constants import BSIZE
+from .piece import Piece, FinalPiece
+from .factory import PeerProtocolFactory
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,8 +28,8 @@ class Torrent(object):
     def parse_metainfo(self):
         try:
             with open(self.filename) as tor:
-                torrent_dict = btencode.btdecode(tor.read())
-        except btencode.BTDecodeError:
+                torrent_dict = btdecode(tor.read())
+        except BTDecodeError:
             logging.error('BTDecodeError handling %s', self.filename)
             sys.exit(1)
         except IOError as e:
@@ -38,8 +43,8 @@ class Torrent(object):
 
         info = torrent_dict['info']
         try:
-            self.info_hash = sha1(btencode.btencode(info)).digest()
-        except btencode.BTEncodeError as e:
+            self.info_hash = sha1(btencode(info)).digest()
+        except BTEncodeError as e:
             logging.error('BTEncodeError handling %s', self.filename, e)
             sys.exit(1)
         self.piece_length = info['piece length']

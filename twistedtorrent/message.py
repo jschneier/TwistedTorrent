@@ -1,6 +1,6 @@
 import struct
 
-from constants import PSTR, RESVD
+from .constants import PSTR, RESVD
 
 class Message(str):
     """Dyanmically generate the string (bytes) which are sent across the wire.

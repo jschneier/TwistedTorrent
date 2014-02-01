@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 twistedtorrent - a twisted bittorrent library:
-==========================================
+==============================================
 
 .. toctree::
    :maxdepth: 4

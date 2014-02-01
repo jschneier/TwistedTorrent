@@ -9,11 +9,13 @@ from .constants import CLIENT_ID_VER
 class TorrentClient(object):
     """A torrent client object. Provides the highest level of abstraction."""
 
-    def __init__(self, torrents):
+    def __init__(self, torrents, port=6881):
         self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]
-        self.port = 6881
+        self.port = port
         if not torrents:
             raise ValueError('Must supply at least 1 torrent file')
+        if isinstance(torrents, basestring):
+            torrents = [torrents]
         self.torrents = {ActiveTorrent(self, torrent) for torrent in torrents}
         self.tracker = TrackerClient(self)
 
@@ -22,8 +24,8 @@ class TorrentClient(object):
         reactor.run()
 
     def start(self):
-        tors = copy.copy(self.torrents)
-        for torrent in tors:
+        torrents = copy.copy(self.torrents)
+        for torrent in torrents:
             self._download(torrent)
 
     @defer.inlineCallbacks

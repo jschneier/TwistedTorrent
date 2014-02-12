@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 import math
 import tempfile
 from hashlib import sha1
@@ -7,9 +6,7 @@ from random import sample
 
 from .btencode import (
     btencode,
-    btdecode,
-    BTEncodeError,
-    BTDecodeError
+    btdecode
 )
 from .constants import BSIZE
 from .piece import Piece, FinalPiece
@@ -26,27 +23,15 @@ class Torrent(object):
         self.parse_metainfo()
 
     def parse_metainfo(self):
-        try:
-            with open(self.filename) as tor:
-                torrent_dict = btdecode(tor.read())
-        except BTDecodeError:
-            logging.error('BTDecodeError handling %s', self.filename)
-            sys.exit(1)
-        except IOError as e:
-            logging.error('IOError handling %s: %s', self.filename, e)
-            sys.exit(1)
-
+        with open(self.filename) as tor:
+            torrent_dict = btdecode(tor.read())
         try:
             self.announce_list = torrent_dict['announce-list']
         except KeyError:
             self.announce_list = [[torrent_dict['announce']]]  # list of lists
 
         info = torrent_dict['info']
-        try:
-            self.info_hash = sha1(btencode(info)).digest()
-        except BTEncodeError as e:
-            logging.error('BTEncodeError handling %s', self.filename, e)
-            sys.exit(1)
+        self.info_hash = sha1(btencode(info)).digest()
         self.piece_length = info['piece length']
 
         if not 'files' in info:

@@ -1,10 +1,15 @@
 import time
 import copy
+import logging
 from twisted.internet import defer
 
+from .exceptions import NoValidTorrent
 from .torrent import ActiveTorrent
 from .tracker import TrackerClient
 from .constants import CLIENT_ID_VER
+from .btencode import BTEncodeError, BTDecodeError
+
+logging.basicConfig(level=logging.DEBUG)
 
 class TorrentClient(object):
     """A torrent client object. Provides the highest level of abstraction."""
@@ -12,11 +17,18 @@ class TorrentClient(object):
     def __init__(self, torrents, port=6881):
         self.client_id = (CLIENT_ID_VER + str(time.time()))[:20]
         self.port = port
-        if not torrents:
-            raise ValueError('Must supply at least 1 torrent file')
+        self.torrents = set()
         if isinstance(torrents, basestring):
             torrents = [torrents]
-        self.torrents = {ActiveTorrent(self, torrent) for torrent in torrents}
+        for torrent in torrents:
+            try:
+                self.torrents.add(ActiveTorrent(self, torrent))
+            except (BTEncodeError, BTDecodeError):
+                logging.exception('Invalid torrent btencoded file: %s', torrent)
+            except IOError:
+                logging.exception('Issue opening torrent file: %s', torrent)
+        if not self.torrents:
+            raise NoValidTorrent()
         self.tracker = TrackerClient(self)
 
         from twisted.internet import reactor

@@ -1,10 +1,16 @@
-import os
+import random
+import string
 import struct
 import socket
+import urlparse
 
-def n_random(n):
-    """Return a random byte string of length n -- cryptographically secure."""
-    return os.urandom(n)
+def parse_url(url):
+    parsed = urlparse.urlparse(url)
+    return parsed.scheme, parsed.hostname, parsed.port
+
+def nrandom(n, chars=string.printable):
+    """Return a random byte string of length n."""
+    return ''.join([random.choice(chars) for _ in xrange(n)])
 
 def decode_hosts_ports(peers_raw):
     """Decode a compact byte string of hosts and ports into a list of tuples.

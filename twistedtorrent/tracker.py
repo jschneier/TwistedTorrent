@@ -8,6 +8,7 @@ from twisted.internet.protocol import DatagramProtocol
 from .btencode import btdecode
 from .constants import UDP_CONN_ID
 from .utils import n_random, decode_hosts_ports
+from .exceptions import AnnounceError
 
 actions = {'connect': 0, 'announce': 1, 'scrape': 2, 'error': 3}
 events = {'none': 0, 'completed': 1, 'started': 2, 'stopped': 3}
@@ -161,6 +162,3 @@ class TrackerClient(object):
         host = host.strip('/')
 
         return protocol, host, port
-
-class AnnounceError(Exception):
-    pass
